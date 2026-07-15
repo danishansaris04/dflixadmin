@@ -239,12 +239,37 @@
       <button class="tab-btn" data-tab="manage">🖼️ All Posters</button>
     </div>
     <div style="display:flex; gap:8px;">
+      <button class="btn btn-ghost" id="setupHelpBtn">⚙️ Setup help</button>
       <button class="btn btn-ghost hidden" id="disconnectDriveBtn">Disconnect Drive</button>
       <button class="btn btn-ghost" id="logoutBtn">Logout</button>
     </div>
   </div>
 
   <div class="wrap">
+
+    <!-- ---------- Setup instructions (collapsed by default) ---------- -->
+    <div id="setupHelpPanel" class="hidden" style="background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:18px 20px; margin-bottom:20px; font-size:12.5px; line-height:1.7; color:var(--muted);">
+      <div style="color:#fff; font-weight:700; font-size:13.5px; margin-bottom:10px;">Save fail ho raha hai? Ye 2 cheezein check karein:</div>
+      <div style="color:#fff; font-weight:700; margin-bottom:4px;">1. Realtime Database → Rules (Firebase Console)</div>
+      <pre style="background:#0a0a10; border:1px solid var(--border); border-radius:8px; padding:12px; overflow-x:auto; color:#cde; margin:0 0 14px;">{
+  "rules": {
+    "posters": {
+      ".read": true,
+      ".write": "auth != null"
+    }
+  }
+}</pre>
+      <div style="color:#fff; font-weight:700; margin-bottom:4px;">2. Storage → Rules (agar image upload use kar rahe ho)</div>
+      <pre style="background:#0a0a10; border:1px solid var(--border); border-radius:8px; padding:12px; overflow-x:auto; color:#cde; margin:0;">rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /posters/{file} {
+      allow read;
+      allow write: if request.auth != null;
+    }
+  }
+}</pre>
+    </div>
 
     <!-- ---------- TAB: Browse Drive (file-manager) ---------- -->
     <div id="tabBrowse">
@@ -257,7 +282,7 @@
         </div>
         <div class="config-warning" id="clientIdWarning">
           Pehle is file ke andar <code>GOOGLE_CLIENT_ID</code> set karna hoga (Google Cloud Console se
-          "Web application" OAuth Client ID banao). Neeche instructions dekhein.
+          "Web application" OAuth Client ID banao). Upar "Setup help" button dekhein.
         </div>
         <button class="btn btn-primary" id="connectDriveBtn">Connect Google Drive</button>
       </div>
@@ -366,6 +391,12 @@
   const db = firebase.database();
   const storage = firebase.storage();
 
+  // Login session ko browser me hamesha yaad rakho (jab tak khud "Logout"
+  // na dabao) - taaki baar baar email/password na maange.
+  auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(function (err) {
+    console.error("Auth persistence set nahi ho payi:", err);
+  });
+
   // Same encoding as app.js — MUST stay identical on both sides, warna app
   // ko poster milega hi nahi.
   function posterKeyEncode(name) {
@@ -446,6 +477,12 @@
   }
 
   logoutBtn.addEventListener("click", function () { auth.signOut(); });
+
+  var setupHelpBtn = document.getElementById("setupHelpBtn");
+  var setupHelpPanel = document.getElementById("setupHelpPanel");
+  setupHelpBtn.addEventListener("click", function () {
+    setupHelpPanel.classList.toggle("hidden");
+  });
 
   auth.onAuthStateChanged(function (user) {
     if (user) {
@@ -759,15 +796,43 @@
     modalSaveBtn.disabled = true;
     modalSaveBtn.textContent = "Saving...";
 
+    var settled = false;
+
+    // Kabhi kabhi Firebase Rules galat set hone par (ya net slow hone par)
+    // save hamesha ke liye "pending" reh sakta hai - 10 second baad bhi
+    // response na aaye to button ko wapas normal kar do aur user ko batao.
+    var timeoutId = setTimeout(function () {
+      if (settled) return;
+      settled = true;
+      modalSaveBtn.disabled = false;
+      modalSaveBtn.textContent = "Save";
+      showToast("Save me time lag raha hai - Firebase Database Rules check karein (neeche instructions)", false);
+    }, 10000);
+
     db.ref("posters/" + key).set({ name: name, url: url, updatedAt: Date.now() })
       .then(function () {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        modalSaveBtn.disabled = false;
+        modalSaveBtn.textContent = "Save";
         showToast("Poster save ho gaya \u2713 App me bhi update ho jaayega", true);
         closePosterModal();
       })
-      .catch(function (err) { showToast("Save fail: " + err.message, false); })
-      .finally(function () {
+      .catch(function (err) {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
         modalSaveBtn.disabled = false;
         modalSaveBtn.textContent = "Save";
+        console.error("Poster save failed:", err);
+        var isPermissionIssue = (err && err.code === "PERMISSION_DENIED");
+        showToast(
+          isPermissionIssue
+            ? "Save fail: Firebase Database Rules abhi tak set nahi hui hai (neeche instructions dekhein)"
+            : "Save fail: " + (err && err.message ? err.message : "Kuch galat hua"),
+          false
+        );
       });
   });
 
@@ -777,7 +842,16 @@
     db.ref("posters/" + editingKey).remove().then(function () {
       showToast("Poster hata diya gaya", true);
       closePosterModal();
-    }).catch(function (err) { showToast("Delete fail: " + err.message, false); });
+    }).catch(function (err) {
+      console.error("Delete failed:", err);
+      var isPermissionIssue = (err && err.code === "PERMISSION_DENIED");
+      showToast(
+        isPermissionIssue
+          ? "Delete fail: Firebase Database Rules abhi tak set nahi hui hai"
+          : "Delete fail: " + (err && err.message ? err.message : "Kuch galat hua"),
+        false
+      );
+    });
   });
 
   function deleteEntry(key) {
@@ -785,7 +859,16 @@
     if (!entry) return;
     if (!confirm('"' + entry.name + '" ka custom poster delete karein?')) return;
     db.ref("posters/" + key).remove().then(function () { showToast("Delete ho gaya", true); })
-      .catch(function (err) { showToast("Delete fail: " + err.message, false); });
+      .catch(function (err) {
+        console.error("Delete failed:", err);
+        var isPermissionIssue = (err && err.code === "PERMISSION_DENIED");
+        showToast(
+          isPermissionIssue
+            ? "Delete fail: Firebase Database Rules abhi tak set nahi hui hai"
+            : "Delete fail: " + (err && err.message ? err.message : "Kuch galat hua"),
+          false
+        );
+      });
   }
 
   // ===== Helpers =====
@@ -804,4 +887,4 @@
   }
 </script>
 </body>
-      </html>
+</html>
