@@ -241,7 +241,6 @@
 </head>
 <body>
 
-<!-- ===================== LOGIN SCREEN (Firebase admin auth) ===================== -->
 <div class="login-wrap" id="loginWrap">
   <div class="login-card">
     <div class="brand">
@@ -264,7 +263,6 @@
   </div>
 </div>
 
-<!-- ===================== ADMIN SHELL ===================== -->
 <div id="adminWrap" class="hidden">
   <div class="topbar">
     <div class="brand">
@@ -284,7 +282,6 @@
 
   <div class="wrap">
 
-    <!-- ---------- Setup instructions (collapsed by default) ---------- -->
     <div id="setupHelpPanel" class="hidden" style="background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:18px 20px; margin-bottom:20px; font-size:12.5px; line-height:1.7; color:var(--muted);">
       <div style="color:#fff; font-weight:700; font-size:13.5px; margin-bottom:10px;">Save fail ho raha hai? Ye 2 cheezein check karein:</div>
       <div style="color:#fff; font-weight:700; margin-bottom:4px;">1. Realtime Database → Rules (Firebase Console)</div>
@@ -308,7 +305,6 @@ service firebase.storage {
 }</pre>
     </div>
 
-    <!-- ---------- TAB: Browse Drive (file-manager) ---------- -->
     <div id="tabBrowse">
       <div id="driveConnectState" class="connect-card">
         <div class="e">🔗</div>
@@ -328,6 +324,7 @@ service firebase.storage {
         <div class="breadcrumb-row">
           <div class="breadcrumb" id="breadcrumb"></div>
           <div style="display:flex; gap:8px; align-items:center;">
+            <button class="btn btn-ghost hidden" id="selectAllBtn">☑️ Select All</button>
             <button class="btn btn-ghost" id="selectModeBtn">☑️ Select multiple</button>
             <div class="count-pill" id="driveCountPill">0 items</div>
           </div>
@@ -342,7 +339,6 @@ service firebase.storage {
       <button class="btn btn-primary" id="bulkApplyBtn">Apply same poster</button>
     </div>
 
-    <!-- ---------- TAB: Manage all saved posters (flat, searchable) ---------- -->
     <div id="tabManage" class="hidden">
       <div class="search-row">
         <input type="text" id="searchInput" placeholder="Naam se search karein...">
@@ -360,12 +356,10 @@ service firebase.storage {
   </div>
 </div>
 
-<!-- ===================== POSTER EDIT MODAL ===================== -->
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal-box">
     <div class="modal-title" id="modalTitle">Set poster</div>
 
-    <!-- ---------- Normal edit form ---------- -->
     <div id="modalFormFields">
       <div class="preview-box" id="previewBox">No image</div>
 
@@ -398,7 +392,6 @@ service firebase.storage {
       </div>
     </div>
 
-    <!-- ---------- TMDB auto-fetch results (toggled in place of form) ---------- -->
     <div id="tmdbResultsPanel" class="hidden">
       <div style="font-size:12.5px; color:var(--muted); margin-bottom:12px;">
         TMDB par jo bhi milein — jo sahi lage usko tap karein:
@@ -418,12 +411,10 @@ service firebase.storage {
 
 <div class="toast" id="toast"></div>
 
-<!-- Firebase SDKs -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
-<!-- Google Identity Services (Drive OAuth in the browser) -->
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 
 <script>
@@ -441,22 +432,10 @@ service firebase.storage {
     measurementId: "G-H3JQPK01YT"
   };
 
-  // Google Cloud Console → APIs & Services → Credentials →
-  // "Create Credentials" → "OAuth client ID" → Application type: "Web application"
-  // → Authorized JavaScript origins: jahan se ye admin.html khulegi
-  //   (e.g. https://dflix-7b2d2.web.app agar Firebase Hosting use kar rahe ho,
-  //   ya http://localhost:PORT agar local server se test kar rahe ho).
-  // Phir wahan se mila Client ID neeche paste karein:
   const GOOGLE_CLIENT_ID = "410654152125-cp96b2j3micih6bak84n14sa24rard24.apps.googleusercontent.com";
-
-  // App wahi root Drive folder browse karta hai - ID app.js se copy kiya gaya hai,
-  // dono jagah same rehna chahiye.
   const LOCKED_ROOT_FOLDER_ID = "17s88x00QQXAnTQtFWasBIOcgRqziTEnQ";
   const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.readonly";
 
-  // TMDB — bilkul wahi API key/logic jo app (PosterCache.java/TmdbHelper.java)
-  // native side par use karta hai, taaki admin panel me BHI wahi poster
-  // dikhe jo app me dikh raha hai (custom override na ho to).
   const TMDB_API_KEY = "16b0f944d64a43298cf3ce5fc5852ffb";
   const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w342";
   const TMDB_JUNK_TOKENS = [
@@ -468,7 +447,8 @@ service firebase.storage {
     "proper", "extended", "uncut", "remastered", "nf", "amzn", "hmax",
     "yify", "yts", "rarbg", "galaxytv", "psa", "org"
   ];
-  var tmdbPosterCache = {}; // rawName -> url ya null (resolve try ho chuka, poster nahi mila)
+  var tmdbPosterCache = {}; 
+  var currentFolderFiles = []; // Track files in current folder for Select All toggle
 
   function tmdbParseFilename(rawName) {
     var name = (rawName || "").replace(/\.(mkv|mp4|avi|mov|wmv|flv|webm|m4v|ts|3gp)$/i, "");
@@ -514,7 +494,7 @@ service firebase.storage {
       if (results.length > 0) {
         callback(results[0].poster_path ? TMDB_IMAGE_BASE + results[0].poster_path : null);
       } else if (year) {
-        tmdbSearchMovie(title, null, callback); // year ke bina ek retry
+        tmdbSearchMovie(title, null, callback); 
       } else {
         callback(null);
       }
@@ -545,8 +525,6 @@ service firebase.storage {
     }
   }
 
-  // Ek saath TMDB par bahut zyada requests na chalein isliye 3 ke batch me
-  // (concurrency-limited queue) resolve karte hain.
   function resolvePostersForCards(items) {
     var queue = items.slice();
     var concurrency = 3;
@@ -572,7 +550,6 @@ service firebase.storage {
     var cards = driveBrowseGrid.querySelectorAll(".fm-card");
     for (var i = 0; i < cards.length; i++) {
       if (cards[i].getAttribute("data-id") === id) {
-        // Beech me kahin admin ne custom poster laga diya ho to usse overwrite mat karo
         var key = posterKeyEncode(cards[i].getAttribute("data-name"));
         if (allPosters[key]) return;
         var thumb = cards[i].querySelector(".fm-thumb");
@@ -587,14 +564,10 @@ service firebase.storage {
   const db = firebase.database();
   const storage = firebase.storage();
 
-  // Login session ko browser me hamesha yaad rakho (jab tak khud "Logout"
-  // na dabao) - taaki baar baar email/password na maange.
   auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(function (err) {
     console.error("Auth persistence set nahi ho payi:", err);
   });
 
-  // Same encoding as app.js — MUST stay identical on both sides, warna app
-  // ko poster milega hi nahi.
   function posterKeyEncode(name) {
     var normalized = (name || "").trim().toLowerCase().replace(/\s+/g, " ");
     return normalized.replace(/[.#$\[\]\/]/g, function (ch) {
@@ -624,6 +597,7 @@ service firebase.storage {
   const driveCountPill = document.getElementById("driveCountPill");
   const driveBrowseGrid = document.getElementById("driveBrowseGrid");
   const selectModeBtn = document.getElementById("selectModeBtn");
+  const selectAllBtn = document.getElementById("selectAllBtn");
   const bulkBar = document.getElementById("bulkBar");
   const bulkCountLabel = document.getElementById("bulkCountLabel");
   const bulkCancelBtn = document.getElementById("bulkCancelBtn");
@@ -655,14 +629,11 @@ service firebase.storage {
   const toastEl = document.getElementById("toast");
 
   var editingKey = null;
-  var bulkModeItems = null; // set => Save applies posterUrl to all these items instead of a single key
+  var bulkModeItems = null; 
   var selectMode = false;
-  var selectedItems = {}; // id -> name (while selectMode is active)
-  var allPosters = {}; // live Firebase snapshot: key -> {name, url, updatedAt}
+  var selectedItems = {}; 
+  var allPosters = {}; 
 
-  // ============================================================
-  // Firebase admin login gate
-  // ============================================================
   loginBtn.addEventListener("click", doLogin);
   loginPassword.addEventListener("keydown", function (e) { if (e.key === "Enter") doLogin(); });
 
@@ -707,9 +678,6 @@ service firebase.storage {
     }
   });
 
-  // ============================================================
-  // Tabs
-  // ============================================================
   tabsRow.querySelectorAll(".tab-btn").forEach(function (btn) {
     btn.addEventListener("click", function () {
       tabsRow.querySelectorAll(".tab-btn").forEach(function (b) { b.classList.remove("active"); });
@@ -720,9 +688,6 @@ service firebase.storage {
     });
   });
 
-  // ============================================================
-  // Google Drive OAuth (browser-side, separate from Firebase login)
-  // ============================================================
   var driveAccessToken = null;
   var tokenClient = null;
   var driveFolderStack = [{ id: LOCKED_ROOT_FOLDER_ID, name: "My Drive" }];
@@ -765,6 +730,7 @@ service firebase.storage {
     driveConnectState.classList.remove("hidden");
     driveBrowseState.classList.add("hidden");
     disconnectDriveBtn.classList.add("hidden");
+    selectAllBtn.classList.add("hidden");
   });
 
   function onDriveConnected() {
@@ -825,9 +791,12 @@ service firebase.storage {
         driveBrowseGrid.innerHTML = '<div class="empty-state"><div class="e">\u26A0\uFE0F</div>'
           + '<div class="t">Load nahi ho paya</div><div class="m">"Disconnect Drive" karke dubara connect karein.</div></div>';
         driveCountPill.textContent = "0 items";
+        currentFolderFiles = [];
         return;
       }
+      currentFolderFiles = files;
       renderDriveBrowse(files);
+      updateSelectAllButtonState();
     });
   }
 
@@ -883,8 +852,9 @@ service firebase.storage {
             card.classList.add("selected");
           }
           updateBulkBar();
+          updateSelectAllButtonState();
         });
-        return; // select-mode me normal open/poster actions disable rehte hain
+        return; 
       }
 
       card.querySelectorAll('[data-act="open"]').forEach(function (el) {
@@ -898,27 +868,58 @@ service firebase.storage {
       });
     });
 
-    // Jin items ka custom poster set nahi hai, unke liye app jaisa hi TMDB
-    // se poster resolve karke thumbnail me laga do (sirf visual - Firebase
-    // me kuch save nahi hota jab tak admin khud "Save" na dabaye).
     var needsResolve = files.filter(function (f) { return !allPosters[posterKeyEncode(f.name)]; });
     resolvePostersForCards(needsResolve);
   }
 
   // ============================================================
-  // Bulk selection (ek saath multiple files/folders par same poster lagana)
+  // Bulk selection with Select All / Deselect All
   // ============================================================
   selectModeBtn.addEventListener("click", function () {
     selectMode = !selectMode;
     selectModeBtn.textContent = selectMode ? "\u2715 Selection band karein" : "\u2611\uFE0F Select multiple";
-    if (!selectMode) selectedItems = {};
+    selectAllBtn.classList.toggle("hidden", !selectMode);
+    if (!selectMode) {
+      selectedItems = {};
+    }
     updateBulkBar();
-    loadDriveFolder(driveFolderStack[driveFolderStack.length - 1].id);
+    renderDriveBrowse(currentFolderFiles);
+    updateSelectAllButtonState();
   });
+
+  selectAllBtn.addEventListener("click", function () {
+    if (currentFolderFiles.length === 0) return;
+    
+    // Check if all items in current folder are already selected
+    var allSelected = currentFolderFiles.every(function(f) { return !!selectedItems[f.id]; });
+    
+    if (allSelected) {
+      // Deselect all items of this folder
+      currentFolderFiles.forEach(function(f) {
+        delete selectedItems[f.id];
+      });
+    } else {
+      // Select all items of this folder
+      currentFolderFiles.forEach(function(f) {
+        selectedItems[f.id] = f.name;
+      });
+    }
+    
+    updateBulkBar();
+    renderDriveBrowse(currentFolderFiles);
+    updateSelectAllButtonState();
+  });
+
+  function updateSelectAllButtonState() {
+    if (!selectMode || currentFolderFiles.length === 0) return;
+    var allSelected = currentFolderFiles.every(function(f) { return !!selectedItems[f.id]; });
+    selectAllBtn.textContent = allSelected ? "🟩 Deselect All" : "☑️ Select All";
+  }
 
   bulkCancelBtn.addEventListener("click", function () {
     selectedItems = {};
     updateBulkBar();
+    updateSelectAllButtonState();
     driveBrowseGrid.querySelectorAll(".fm-card.selected").forEach(function (c) { c.classList.remove("selected"); });
   });
 
@@ -935,13 +936,12 @@ service firebase.storage {
   });
 
   // ============================================================
-  // Firebase posters — live list (used by "All Posters" tab + poster badges)
+  // Firebase posters — live list 
   // ============================================================
   function attachPosterListener() {
     db.ref("posters").on("value", function (snapshot) {
       allPosters = snapshot.val() || {};
       renderPosterList();
-      // Agar Drive browse khula hua hai to poster-badges bhi refresh ho jaayein
       if (!driveBrowseState.classList.contains("hidden") && driveAccessToken) {
         loadDriveFolder(driveFolderStack[driveFolderStack.length - 1].id);
       }
@@ -995,7 +995,7 @@ service firebase.storage {
   searchInput.addEventListener("input", renderPosterList);
 
   // ============================================================
-  // Poster edit modal (shared by Drive-browse tap AND Manage-all tab)
+  // Poster edit modal 
   // ============================================================
   function openPosterModal(name, explicitKey) {
     bulkModeItems = null;
@@ -1003,7 +1003,7 @@ service firebase.storage {
     var existing = allPosters[editingKey];
     var tmdbFallbackUrl = tmdbPosterCache.hasOwnProperty(name) ? tmdbPosterCache[name] : null;
 
-    modalTitle.textContent = existing ? "Edit poster" : "Set poster";
+    modalTitle.textContent = "Edit poster";
     posterNameField.classList.remove("hidden");
     bulkSummaryField.classList.add("hidden");
     posterName.removeAttribute("readonly");
@@ -1017,7 +1017,6 @@ service firebase.storage {
     modalOverlay.classList.add("active");
   }
 
-  // Bulk mode: ek hi poster URL, ek saath selected sabhi items par set hoga
   function openBulkPosterModal(items) {
     bulkModeItems = items;
     editingKey = null;
@@ -1078,10 +1077,6 @@ service firebase.storage {
     });
   });
 
-  // ============================================================
-  // TMDB auto-fetch — sabhi matching results (movie + tv) gallery me
-  // dikhate hain, jisme se admin apni marzi se sahi poster chun sake.
-  // ============================================================
   function showModalForm() {
     tmdbResultsPanel.classList.add("hidden");
     modalFormFields.classList.remove("hidden");
@@ -1182,15 +1177,12 @@ service firebase.storage {
 
     var settled = false;
 
-    // Kabhi kabhi Firebase Rules galat set hone par (ya net slow hone par)
-    // save hamesha ke liye "pending" reh sakta hai - 10 second baad bhi
-    // response na aaye to button ko wapas normal kar do aur user ko batao.
     var timeoutId = setTimeout(function () {
       if (settled) return;
       settled = true;
       modalSaveBtn.disabled = false;
       modalSaveBtn.textContent = "Save";
-      showToast("Save me time lag raha hai - Firebase Database Rules check karein (neeche instructions)", false);
+      showToast("Save me time lag raha hai - Firebase Database Rules check karein", false);
     }, 10000);
 
     db.ref("posters/" + key).set({ name: name, url: url, updatedAt: Date.now() })
@@ -1213,15 +1205,13 @@ service firebase.storage {
         var isPermissionIssue = (err && err.code === "PERMISSION_DENIED");
         showToast(
           isPermissionIssue
-            ? "Save fail: Firebase Database Rules abhi tak set nahi hui hai (neeche instructions dekhein)"
+            ? "Save fail: Firebase Database Rules abhi tak set nahi hui hai"
             : "Save fail: " + (err && err.message ? err.message : "Kuch galat hua"),
           false
         );
       });
   });
 
-  // Ek hi poster URL, saare selected items ke apne-apne keys par ek saath
-  // (single multi-path update) save kar deta hai.
   function saveBulkPosters(items, url) {
     var updates = {};
     var now = Date.now();
@@ -1251,10 +1241,10 @@ service firebase.storage {
         modalSaveBtn.textContent = "Save";
         showToast(items.length + " items ka poster set ho gaya \u2713", true);
 
-        // Bulk apply ke baad selection mode band karke normal browsing me wapas
         selectedItems = {};
         selectMode = false;
         selectModeBtn.textContent = "\u2611\uFE0F Select multiple";
+        selectAllBtn.classList.add("hidden");
         updateBulkBar();
         closePosterModal();
       })
