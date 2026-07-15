@@ -125,10 +125,104 @@ var navDownloads = document.getElementById("navDownloads");
 var downloadsViewEl = document.getElementById("downloadsView");
 var downloadsListEl = document.getElementById("downloadsList");
 
+// ==========================================================================
+// TV REMOTE NAVIGATION (bottom nav bar)
+// Android side D-pad key events ko WebView ke andar normal keyboard
+// KeyboardEvent (ArrowLeft/ArrowRight/Enter) ki tarah bhej deta hai (jab
+// tak WebView ko Android focus mila ho - dekho MainActivity.java). Yahan
+// bas un keys ko sunke bottom-nav ke items ke beech left/right cursor move
+// karte hain aur "Enter"/OK dabane par jahan cursor hai wahi tab khulta hai.
+// ==========================================================================
+
+var tvNavItems = [];     // bottom-nav ke saare buttons, left-to-right order me
+var tvNavIndex = 0;      // abhi remote ka "cursor" kis index par hai
+var tvNavActive = false; // jab tak user pehli baar D-pad na dabaye, koi highlight nahi dikhta
+
+function initTvNav() {
+  tvNavItems = Array.prototype.slice.call(document.querySelectorAll(".bottom-nav .nav-item"));
+}
+
+function isTypingContext() {
+  var el = document.activeElement;
+  return !!(el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA"));
+}
+
+function isOverlayOpen() {
+  return searchOverlay.classList.contains("active")
+    || confirmOverlay.classList.contains("active")
+    || actionSheetOverlay.classList.contains("active");
+}
+
+function setTvNavFocus(index) {
+  if (tvNavItems.length === 0) return;
+  if (index < 0) index = 0;
+  if (index > tvNavItems.length - 1) index = tvNavItems.length - 1;
+
+  for (var i = 0; i < tvNavItems.length; i++) tvNavItems[i].classList.remove("focused");
+  tvNavIndex = index;
+  var el = tvNavItems[tvNavIndex];
+  el.classList.add("focused");
+  try { el.focus(); } catch (e) { /* kuch WebView versions me focus() fail ho sakta hai - koi baat nahi */ }
+  tvNavActive = true;
+}
+
+function moveTvNavFocus(delta) {
+  if (!tvNavActive) {
+    // Pehli baar D-pad dabane par, abhi jo tab active hai wahi se cursor shuru ho
+    var activeIdx = 0;
+    for (var i = 0; i < tvNavItems.length; i++) {
+      if (tvNavItems[i].classList.contains("active")) { activeIdx = i; break; }
+    }
+    setTvNavFocus(activeIdx);
+    return;
+  }
+  setTvNavFocus(tvNavIndex + delta);
+}
+
+function activateTvNavFocus() {
+  if (!tvNavActive || !tvNavItems[tvNavIndex]) return;
+  tvNavItems[tvNavIndex].click();
+}
+
+// Nav item par touch/mouse se tap kiya to bhi remote-cursor ko usi item
+// par sync kar dete hain, taaki agla D-pad press wahin se aage badhe.
+function syncTvNavToClickedItem(el) {
+  var idx = tvNavItems.indexOf(el);
+  if (idx !== -1) {
+    tvNavIndex = idx;
+    tvNavActive = true;
+    for (var i = 0; i < tvNavItems.length; i++) tvNavItems[i].classList.remove("focused");
+    el.classList.add("focused");
+  }
+}
+
+document.addEventListener("keydown", function (e) {
+  if (isTypingContext() || isOverlayOpen()) return;
+
+  if (e.key === "ArrowLeft") {
+    moveTvNavFocus(-1);
+    e.preventDefault();
+  } else if (e.key === "ArrowRight") {
+    moveTvNavFocus(1);
+    e.preventDefault();
+  } else if (e.key === "Enter") {
+    if (tvNavActive) {
+      activateTvNavFocus();
+      e.preventDefault();
+    }
+  }
+});
+
+document.addEventListener("click", function (e) {
+  var navBtn = e.target.closest ? e.target.closest(".bottom-nav .nav-item") : null;
+  if (navBtn) syncTvNavToClickedItem(navBtn);
+});
+
 // ---------- Init ----------
 window.addEventListener("load", function () {
   checkLogin();
   loadCustomPosters();
+  initTvNav();
 });
 
 document.addEventListener("visibilitychange", function () {
@@ -241,11 +335,18 @@ function ensureRootFoldersLoaded(callback, forceRefresh) {
 var MOVIE_TAB_EXTRA_PATHS = [
   ["Marvel", "Avengers", "480p"]
 ];
-
 var MOVIE_TAB_EXTRA_PATHS = [
   ["Harry Potter", "480p"]
 ];
-
+var MOVIE_TAB_EXTRA_PATHS = [
+  ["Pirates of the Caribbean", "480p"]
+];
+var MOVIE_TAB_EXTRA_PATHS = [
+  ["Transformer", "480p"]
+];
+var MOVIE_TAB_EXTRA_PATHS = [
+  ["DC", "480p"]
+];
 
 function goMovies() {
   closeSearch();
@@ -255,7 +356,7 @@ function goMovies() {
   homeViewEl.classList.add("hidden");
   downloadsViewEl.classList.add("hidden");
   contentEl.classList.remove("hidden");
-  loadCategoryFolders(["Bollywood", "Hollywood"], "Movie", true, MOVIE_TAB_EXTRA_PATHS);
+  loadCategoryFolders(["Bollywood", "Hollywood", "Fast and Furious", "Mission Impossible",], "Movie", true, MOVIE_TAB_EXTRA_PATHS);
 }
 
 function goWebSeries() {
@@ -437,7 +538,7 @@ function handleBackPress() {
     return true;
   }
   if (viewMode === "downloadFolder") {
-    goDownloads();
+    exitDownloadFolderLevel();
     return true;
   }
   if (viewMode === "browse" && folderStack.length > 1) {
@@ -450,7 +551,7 @@ function handleBackPress() {
 // Visible back-chevron in header (browse-mode me) + hardware-back dono isi ko use karte hain
 function goBackFolder() {
   if (viewMode === "downloadFolder") {
-    goDownloads();
+    exitDownloadFolderLevel();
     return;
   }
   if (folderStack.length <= 1) return;
@@ -1219,6 +1320,7 @@ function onFolderDownloadQueued(filesJson, folderName) {
   var patches = files.map(function (f) {
     return {
       id: f.id, name: f.name, isFolder: false, folderName: folderName,
+      subPath: f.subPath || [],
       status: "downloading", received: 0, total: 0, speed: 0, ts: Date.now()
     };
   });
@@ -1251,6 +1353,7 @@ function goDownloads() {
   closeSearch();
   viewMode = "downloads";
   currentDownloadFolderName = null;
+  currentDownloadSubPath = [];
   appRoot.classList.remove("browse-mode");
   setActiveNav(navDownloads);
   homeViewEl.classList.add("hidden");
@@ -1380,8 +1483,7 @@ function attachDownloadFolderCardHandlers(container) {
     var folderName = card.getAttribute("data-folder-name");
     card.addEventListener("click", function (e) {
       if (e.target.closest(".grid-remove-btn")) return;
-      var items = loadDownloads().filter(function (i) { return i.folderName === folderName; });
-      enterDownloadFolder(folderName, items);
+      enterDownloadFolder(folderName);
     });
 
     var removeBtn = card.querySelector(".grid-remove-btn");
@@ -1394,22 +1496,78 @@ function attachDownloadFolderCardHandlers(container) {
   });
 }
 
-// Downloads tab se ek downloaded folder ke andar "ghuso" - files bilkul
-// waisi hi dikhti hain jaisi normal Drive browsing me (poster + naam).
-function enterDownloadFolder(folderName, items) {
+// Downloads tab se ek downloaded folder ke andar "ghuso" - agar us folder
+// ke andar subfolders bhi thi, to wahi nested structure (folder -> subfolder
+// -> file) yahan bhi milti hai, Drive browsing jaisi hi.
+var currentDownloadSubPath = []; // abhi kis subfolder ke andar hain (naamon ka chain)
+
+function enterDownloadFolder(folderName) {
   closeSearch();
   currentDownloadFolderName = folderName;
+  currentDownloadSubPath = [];
   viewMode = "downloadFolder";
   appRoot.classList.add("browse-mode");
   homeViewEl.classList.add("hidden");
   downloadsViewEl.classList.add("hidden");
   contentEl.classList.remove("hidden");
-  renderDownloadFolderGrid(folderName, items);
+  renderDownloadFolderGrid(folderName, currentDownloadSubPath);
 }
 
-function renderDownloadFolderGrid(folderName, items) {
+function enterDownloadSubfolder(name) {
+  currentDownloadSubPath.push(name);
+  renderDownloadFolderGrid(currentDownloadFolderName, currentDownloadSubPath);
+}
+
+// Ek baar upar jaana - subfolder ke andar the to ek level upar, warna
+// seedha Downloads tab par. handleBackPress() aur header ka back-chevron
+// (goBackFolder) dono isi ko use karte hain.
+function exitDownloadFolderLevel() {
+  if (currentDownloadSubPath.length > 0) {
+    currentDownloadSubPath.pop();
+    renderDownloadFolderGrid(currentDownloadFolderName, currentDownloadSubPath);
+  } else {
+    goDownloads();
+  }
+}
+
+// Diye gaye subPath (folder-chain) ke exact us level par kya-kya hai -
+// us level ki seedhi files, aur us level ke andar ki agli subfolders
+// (unke sabhi descendant items ke saath, taaki progress/completion pata chal sake).
+function getDownloadFolderLevel(folderName, subPath) {
+  var allItems = loadDownloads().filter(function (i) { return i.folderName === folderName; });
+  var files = [];
+  var subfolderMap = {};
+  var subfolderOrder = [];
+
+  allItems.forEach(function (item) {
+    var itemPath = item.subPath || [];
+    for (var i = 0; i < subPath.length; i++) {
+      if (itemPath[i] !== subPath[i]) return; // is subPath ke andar nahi aata
+    }
+    if (itemPath.length === subPath.length) {
+      files.push(item);
+    } else {
+      var nextName = itemPath[subPath.length];
+      if (!subfolderMap[nextName]) {
+        subfolderMap[nextName] = [];
+        subfolderOrder.push(nextName);
+      }
+      subfolderMap[nextName].push(item);
+    }
+  });
+
+  return {
+    files: files,
+    subfolders: subfolderOrder.map(function (name) { return { name: name, items: subfolderMap[name] }; })
+  };
+}
+
+function renderDownloadFolderGrid(folderName, subPath) {
+  var level = getDownloadFolderLevel(folderName, subPath);
+  var titleText = subPath.length > 0 ? subPath[subPath.length - 1] : folderName;
+
   contentEl.innerHTML = '<div class="row-header" style="padding:16px 16px 6px;"><div class="row-title">'
-    + escapeHtml(folderName) + '</div>'
+    + escapeHtml(titleText) + '</div>'
     + '<button class="row-seeall" id="btnDeleteWholeFolder">Delete All</button>'
     + '</div><div class="movie-grid" id="downloadFolderGrid"></div>';
   var gridEl = document.getElementById("downloadFolderGrid");
@@ -1421,30 +1579,67 @@ function renderDownloadFolderGrid(folderName, items) {
     });
   }
 
-  if (items.length === 0) {
+  if (level.subfolders.length === 0 && level.files.length === 0) {
     showStateScreen(contentEl, "\uD83D\uDCED", "Khaali",
       "Is folder ki saari files delete ho chuki hain.");
     return;
   }
 
   var html = "";
-  items.forEach(function (item) { html += buildDownloadCardHtml(item); });
+  level.subfolders.forEach(function (sf) { html += buildDownloadSubfolderCardHtml(sf.name, sf.items); });
+  level.files.forEach(function (item) { html += buildDownloadCardHtml(item); });
   gridEl.innerHTML = html;
+  attachDownloadSubfolderCardHandlers(contentEl);
   attachDownloadCardHandlers(contentEl);
   lazyLoadPostersIn(contentEl);
 }
 
-// Agar user abhi kisi downloaded folder ke andar hai, delete ke baad usi
-// view ko taaza data ke saath refresh kar do (ya khaali ho gayi ho to
-// Downloads tab par wapas bhej do).
+// Downloaded folder ke andar ki subfolder ke liye card - poster/📁 icon +
+// naam, aur agar us subfolder ke andar sab kuch download nahi hui to ek
+// "x/y" badge bhi (kitni files complete hain).
+function buildDownloadSubfolderCardHtml(name, items) {
+  posterUidSeq++;
+  var uid = "dlsubfolder_u" + posterUidSeq;
+  var completedCount = items.filter(function (i) { return i.status === "completed"; }).length;
+
+  var html = '<div class="grid-card folder-card download-subfolder-card" '
+    + 'data-subfolder-name="' + escapeHtml(name) + '" tabindex="0">';
+  html += '<div class="no-poster" id="' + uid + '" data-poster-query="' + escapeHtml(name) + '"><div class="gi">\uD83D\uDCC1</div></div>';
+  if (completedCount < items.length) {
+    html += '<span class="badge">' + completedCount + '/' + items.length + '</span>';
+  }
+  html += '<div class="grid-name">' + escapeHtml(name) + '</div>';
+  html += '</div>';
+  return html;
+}
+
+function attachDownloadSubfolderCardHandlers(container) {
+  container.querySelectorAll(".download-subfolder-card").forEach(function (card) {
+    var name = card.getAttribute("data-subfolder-name");
+    card.addEventListener("click", function () {
+      enterDownloadSubfolder(name);
+    });
+  });
+}
+
+// Agar user abhi kisi downloaded folder/subfolder ke andar hai, delete ke
+// baad usi level ko taaza data ke saath refresh kar do. Agar wo level ab
+// khaali ho chuka hai to ek-ek level upar jaate hain jab tak kuch mile ya
+// root tak pahunch jaayein; poora top-folder hi khaali ho gaya ho to
+// Downloads tab par wapas bhej dete hain.
 function refreshDownloadFolderViewIfOpen() {
   if (viewMode !== "downloadFolder" || !currentDownloadFolderName) return;
-  var items = loadDownloads().filter(function (i) { return i.folderName === currentDownloadFolderName; });
-  if (items.length === 0) {
+  var anyLeftInFolder = loadDownloads().some(function (i) { return i.folderName === currentDownloadFolderName; });
+  if (!anyLeftInFolder) {
     goDownloads();
     return;
   }
-  renderDownloadFolderGrid(currentDownloadFolderName, items);
+  while (currentDownloadSubPath.length > 0) {
+    var level = getDownloadFolderLevel(currentDownloadFolderName, currentDownloadSubPath);
+    if (level.subfolders.length > 0 || level.files.length > 0) break;
+    currentDownloadSubPath.pop();
+  }
+  renderDownloadFolderGrid(currentDownloadFolderName, currentDownloadSubPath);
 }
 
 // Completed download ke liye normal grid-card jaisa hi card (poster + naam),
