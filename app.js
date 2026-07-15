@@ -1764,4 +1764,4 @@ function escapeHtml(str) {
   var div = document.createElement("div");
   div.innerText = str == null ? "" : str;
   return div.innerHTML;
-   }
+    }
