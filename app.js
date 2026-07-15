@@ -242,6 +242,11 @@ var MOVIE_TAB_EXTRA_PATHS = [
   ["Marvel", "Avengers", "480p"]
 ];
 
+var MOVIE_TAB_EXTRA_PATHS = [
+  ["Harry Potter", "480p"]
+];
+
+
 function goMovies() {
   closeSearch();
   viewMode = "movies";
