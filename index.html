@@ -386,6 +386,134 @@ service firebase.storage {
   const LOCKED_ROOT_FOLDER_ID = "17s88x00QQXAnTQtFWasBIOcgRqziTEnQ";
   const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.readonly";
 
+  // TMDB — bilkul wahi API key/logic jo app (PosterCache.java/TmdbHelper.java)
+  // native side par use karta hai, taaki admin panel me BHI wahi poster
+  // dikhe jo app me dikh raha hai (custom override na ho to).
+  const TMDB_API_KEY = "16b0f944d64a43298cf3ce5fc5852ffb";
+  const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w342";
+  const TMDB_JUNK_TOKENS = [
+    "1080p", "720p", "480p", "2160p", "4k", "8k", "hdcam", "hdrip", "dvdrip",
+    "webrip", "web dl", "webdl", "bluray", "blu ray", "brrip", "bdrip",
+    "hdtv", "x264", "x265", "hevc", "h264", "h265", "aac", "ac3", "dts",
+    "esubs", "esub", "subbed", "dual audio", "multi audio", "dubbed",
+    "hindi", "english", "tamil", "telugu", "kannada", "malayalam", "korean",
+    "proper", "extended", "uncut", "remastered", "nf", "amzn", "hmax",
+    "yify", "yts", "rarbg", "galaxytv", "psa", "org"
+  ];
+  var tmdbPosterCache = {}; // rawName -> url ya null (resolve try ho chuka, poster nahi mila)
+
+  function tmdbParseFilename(rawName) {
+    var name = (rawName || "").replace(/\.(mkv|mp4|avi|mov|wmv|flv|webm|m4v|ts|3gp)$/i, "");
+    var year = null;
+    var yearMatch = name.match(/\b(19\d{2}|20\d{2})\b/);
+    if (yearMatch) year = yearMatch[1];
+
+    var guessedType = "movie";
+    var titleSource;
+    var seMatch = name.match(/\bS\d{1,2}\s?E\d{1,3}\b/i);
+    var seasonMatch = name.match(/\bSeason\s?\d{1,2}\b/i);
+    if (seMatch) {
+      guessedType = "tv";
+      titleSource = name.substring(0, seMatch.index);
+    } else if (seasonMatch) {
+      guessedType = "tv";
+      titleSource = name.substring(0, seasonMatch.index);
+    } else {
+      titleSource = name;
+    }
+
+    titleSource = titleSource.replace(/[\[\(\{][^\[\]\(\)\{\}]*[\]\)\}]/g, " ");
+    titleSource = titleSource.replace(/[._-]/g, " ");
+
+    TMDB_JUNK_TOKENS.forEach(function (tok) {
+      var re = new RegExp("\\b" + tok.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "gi");
+      titleSource = titleSource.replace(re, " ");
+    });
+
+    titleSource = titleSource.replace(/\b(19\d{2}|20\d{2})\b/g, " ");
+    titleSource = titleSource.replace(/\b\d+(\.\d+)?\s?(MB|GB|KB)\b/gi, " ");
+    titleSource = titleSource.replace(/\s+/g, " ").trim();
+    titleSource = titleSource.replace(/^[\s\-:,.]+|[\s\-:,.]+$/g, "").trim();
+
+    return { title: titleSource, year: year, guessedType: guessedType };
+  }
+
+  function tmdbSearchMovie(title, year, callback) {
+    var url = "https://api.themoviedb.org/3/search/movie?api_key=" + TMDB_API_KEY
+      + "&query=" + encodeURIComponent(title) + (year ? "&year=" + year : "");
+    fetch(url).then(function (r) { return r.json(); }).then(function (data) {
+      var results = data.results || [];
+      if (results.length > 0) {
+        callback(results[0].poster_path ? TMDB_IMAGE_BASE + results[0].poster_path : null);
+      } else if (year) {
+        tmdbSearchMovie(title, null, callback); // year ke bina ek retry
+      } else {
+        callback(null);
+      }
+    }).catch(function () { callback(null); });
+  }
+
+  function tmdbSearchTv(title, callback) {
+    var url = "https://api.themoviedb.org/3/search/tv?api_key=" + TMDB_API_KEY + "&query=" + encodeURIComponent(title);
+    fetch(url).then(function (r) { return r.json(); }).then(function (data) {
+      var results = data.results || [];
+      callback(results.length > 0 && results[0].poster_path ? TMDB_IMAGE_BASE + results[0].poster_path : null);
+    }).catch(function () { callback(null); });
+  }
+
+  function resolveTmdbPoster(rawName, callback) {
+    if (tmdbPosterCache.hasOwnProperty(rawName)) { callback(tmdbPosterCache[rawName]); return; }
+    var parsed = tmdbParseFilename(rawName);
+    if (!parsed.title) { tmdbPosterCache[rawName] = null; callback(null); return; }
+
+    function done(url) {
+      tmdbPosterCache[rawName] = url;
+      callback(url);
+    }
+    if (parsed.guessedType === "tv") {
+      tmdbSearchTv(parsed.title, done);
+    } else {
+      tmdbSearchMovie(parsed.title, parsed.year, done);
+    }
+  }
+
+  // Ek saath TMDB par bahut zyada requests na chalein isliye 3 ke batch me
+  // (concurrency-limited queue) resolve karte hain.
+  function resolvePostersForCards(items) {
+    var queue = items.slice();
+    var concurrency = 3;
+    var active = 0;
+
+    function next() {
+      while (active < concurrency && queue.length > 0) {
+        var item = queue.shift();
+        active++;
+        (function (it) {
+          resolveTmdbPoster(it.name, function (url) {
+            active--;
+            if (url) applyDriveCardPoster(it.id, url);
+            next();
+          });
+        })(item);
+      }
+    }
+    next();
+  }
+
+  function applyDriveCardPoster(id, url) {
+    var cards = driveBrowseGrid.querySelectorAll(".fm-card");
+    for (var i = 0; i < cards.length; i++) {
+      if (cards[i].getAttribute("data-id") === id) {
+        // Beech me kahin admin ne custom poster laga diya ho to usse overwrite mat karo
+        var key = posterKeyEncode(cards[i].getAttribute("data-name"));
+        if (allPosters[key]) return;
+        var thumb = cards[i].querySelector(".fm-thumb");
+        if (thumb) thumb.innerHTML = '<img src="' + escapeHtml(url) + '" loading="lazy">';
+        return;
+      }
+    }
+  }
+
   firebase.initializeApp(firebaseConfig);
   const auth = firebase.auth();
   const db = firebase.database();
@@ -669,6 +797,12 @@ service firebase.storage {
         });
       });
     });
+
+    // Jin items ka custom poster set nahi hai, unke liye app jaisa hi TMDB
+    // se poster resolve karke thumbnail me laga do (sirf visual - Firebase
+    // me kuch save nahi hota jab tak admin khud "Save" na dabaye).
+    var needsResolve = files.filter(function (f) { return !allPosters[posterKeyEncode(f.name)]; });
+    resolvePostersForCards(needsResolve);
   }
 
   // ============================================================
@@ -737,9 +871,11 @@ service firebase.storage {
   function openPosterModal(name, explicitKey) {
     editingKey = explicitKey || posterKeyEncode(name);
     var existing = allPosters[editingKey];
+    var tmdbFallbackUrl = tmdbPosterCache.hasOwnProperty(name) ? tmdbPosterCache[name] : null;
+
     modalTitle.textContent = existing ? "Edit poster" : "Set poster";
     posterName.value = name;
-    posterUrl.value = existing ? (existing.url || "") : "";
+    posterUrl.value = existing ? (existing.url || "") : (tmdbFallbackUrl || "");
     posterFile.value = "";
     uploadProgress.style.display = "none";
     updatePreview(posterUrl.value);
