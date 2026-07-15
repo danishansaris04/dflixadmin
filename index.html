@@ -190,6 +190,43 @@
   .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
   .modal-actions .btn { flex: 1; }
 
+  /* ---------- TMDB auto-fetch results gallery ---------- */
+  .tmdb-results-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 10px;
+    max-height: 340px; overflow-y: auto; padding-right: 2px;
+  }
+  .tmdb-result-card { cursor: pointer; border-radius: 10px; overflow: hidden; background: var(--card); border: 1px solid var(--border); }
+  .tmdb-result-card:hover { border-color: var(--blue); }
+  .tmdb-result-thumb { width: 100%; aspect-ratio: 2/3; background: #0a0a10; display: flex; align-items: center; justify-content: center; }
+  .tmdb-result-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .tmdb-result-thumb .ph { font-size: 20px; color: var(--muted); }
+  .tmdb-result-label { font-size: 10.5px; padding: 5px 6px 6px; line-height: 1.3; }
+  .tmdb-type-tag {
+    display: inline-block; margin-top: 3px; font-size: 9px; font-weight: 700;
+    background: rgba(0,229,255,0.12); color: var(--blue); padding: 1px 5px; border-radius: 5px;
+  }
+
+  /* ---------- Bulk selection on Browse Drive ---------- */
+  .fm-card { position: relative; }
+  .fm-card .select-check {
+    position: absolute; top: 6px; left: 6px; width: 22px; height: 22px; border-radius: 50%;
+    background: rgba(0,0,0,0.55); border: 2px solid rgba(255,255,255,0.5); z-index: 5;
+    display: none; align-items: center; justify-content: center; color: #fff; font-size: 12px; font-weight: 800;
+  }
+  .fm-card.select-mode .select-check { display: flex; }
+  .fm-card.selected .select-check { background: var(--blue); border-color: var(--blue); color: #001217; }
+  .fm-card.selected .fm-thumb { outline: 3px solid var(--blue); outline-offset: -3px; }
+  .fm-card.select-mode { cursor: pointer; }
+  .fm-card.select-mode .fm-actions { pointer-events: none; opacity: 0.4; }
+
+  .bulk-bar {
+    position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%);
+    background: #12121a; border: 1px solid var(--border); border-radius: 14px;
+    padding: 12px 16px; display: flex; align-items: center; gap: 16px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.6); z-index: 90; max-width: 92vw;
+  }
+  .bulk-bar #bulkCountLabel { font-size: 13px; font-weight: 700; white-space: nowrap; }
+
   .toast {
     position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%) translateY(20px);
     background: #12121a; border: 1px solid var(--border); color: #fff;
@@ -290,10 +327,19 @@ service firebase.storage {
       <div id="driveBrowseState" class="hidden">
         <div class="breadcrumb-row">
           <div class="breadcrumb" id="breadcrumb"></div>
-          <div class="count-pill" id="driveCountPill">0 items</div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <button class="btn btn-ghost" id="selectModeBtn">☑️ Select multiple</button>
+            <div class="count-pill" id="driveCountPill">0 items</div>
+          </div>
         </div>
         <div id="driveBrowseGrid"></div>
       </div>
+    </div>
+
+    <div class="bulk-bar hidden" id="bulkBar">
+      <div id="bulkCountLabel">0 selected</div>
+      <button class="btn btn-ghost" id="bulkCancelBtn">Cancel</button>
+      <button class="btn btn-primary" id="bulkApplyBtn">Apply same poster</button>
     </div>
 
     <!-- ---------- TAB: Manage all saved posters (flat, searchable) ---------- -->
@@ -319,34 +365,56 @@ service firebase.storage {
   <div class="modal-box">
     <div class="modal-title" id="modalTitle">Set poster</div>
 
-    <div class="preview-box" id="previewBox">No image</div>
+    <!-- ---------- Normal edit form ---------- -->
+    <div id="modalFormFields">
+      <div class="preview-box" id="previewBox">No image</div>
 
-    <div class="field">
-      <label>Folder / File ka naam</label>
-      <input type="text" id="posterName" placeholder="e.g. Pathaan (2023)">
-    </div>
-
-    <div class="field">
-      <label>Poster Image URL</label>
-      <input type="text" id="posterUrl" placeholder="https://...jpg" oninput="onUrlInputChange()">
-    </div>
-
-    <div class="field" style="margin-bottom:0;">
-      <label>Ya seedhe upload karein</label>
-      <div class="upload-row">
-        <label class="upload-label" for="posterFile">📤 Image chunein aur upload karein</label>
-        <input type="file" id="posterFile" accept="image/*">
+      <div class="field" id="posterNameField">
+        <label>Folder / File ka naam</label>
+        <input type="text" id="posterName" placeholder="e.g. Pathaan (2023)">
       </div>
-      <div class="upload-progress" id="uploadProgress">Uploading... 0%</div>
+
+      <div class="field hidden" id="bulkSummaryField">
+        <label>Selected items</label>
+        <div id="bulkSummaryText" style="font-size:12.5px; color:var(--muted); line-height:1.6; background:#0a0a10; border:1px solid var(--border); border-radius:10px; padding:10px 12px;"></div>
+      </div>
+
+      <div class="field">
+        <button class="btn btn-ghost" id="autoFetchBtn" style="width:100%;">🔍 TMDB se auto-fetch karein (sab options dekhein)</button>
+      </div>
+
+      <div class="field">
+        <label>Poster Image URL</label>
+        <input type="text" id="posterUrl" placeholder="https://...jpg" oninput="onUrlInputChange()">
+      </div>
+
+      <div class="field" style="margin-bottom:0;">
+        <label>Ya seedhe upload karein</label>
+        <div class="upload-row">
+          <label class="upload-label" for="posterFile">📤 Image chunein aur upload karein</label>
+          <input type="file" id="posterFile" accept="image/*">
+        </div>
+        <div class="upload-progress" id="uploadProgress">Uploading... 0%</div>
+      </div>
     </div>
 
-    <div class="modal-actions">
+    <!-- ---------- TMDB auto-fetch results (toggled in place of form) ---------- -->
+    <div id="tmdbResultsPanel" class="hidden">
+      <div style="font-size:12.5px; color:var(--muted); margin-bottom:12px;">
+        TMDB par jo bhi milein — jo sahi lage usko tap karein:
+      </div>
+      <div id="tmdbResultsGrid" class="tmdb-results-grid"></div>
+      <button class="btn btn-ghost" id="tmdbResultsBackBtn" style="width:100%; margin-top:14px;">← Wapas jao</button>
+    </div>
+
+    <div class="modal-actions" id="modalActionsRow">
       <button class="btn btn-ghost" id="modalCancelBtn">Cancel</button>
       <button class="btn btn-danger hidden" id="modalDeleteBtn">Remove</button>
       <button class="btn btn-primary" id="modalSaveBtn">Save</button>
     </div>
   </div>
 </div>
+
 
 <div class="toast" id="toast"></div>
 
@@ -555,6 +623,11 @@ service firebase.storage {
   const breadcrumbEl = document.getElementById("breadcrumb");
   const driveCountPill = document.getElementById("driveCountPill");
   const driveBrowseGrid = document.getElementById("driveBrowseGrid");
+  const selectModeBtn = document.getElementById("selectModeBtn");
+  const bulkBar = document.getElementById("bulkBar");
+  const bulkCountLabel = document.getElementById("bulkCountLabel");
+  const bulkCancelBtn = document.getElementById("bulkCancelBtn");
+  const bulkApplyBtn = document.getElementById("bulkApplyBtn");
 
   const searchInput = document.getElementById("searchInput");
   const countPill = document.getElementById("countPill");
@@ -562,6 +635,10 @@ service firebase.storage {
 
   const modalOverlay = document.getElementById("modalOverlay");
   const modalTitle = document.getElementById("modalTitle");
+  const modalFormFields = document.getElementById("modalFormFields");
+  const posterNameField = document.getElementById("posterNameField");
+  const bulkSummaryField = document.getElementById("bulkSummaryField");
+  const bulkSummaryText = document.getElementById("bulkSummaryText");
   const posterName = document.getElementById("posterName");
   const posterUrl = document.getElementById("posterUrl");
   const posterFile = document.getElementById("posterFile");
@@ -570,10 +647,17 @@ service firebase.storage {
   const modalSaveBtn = document.getElementById("modalSaveBtn");
   const modalDeleteBtn = document.getElementById("modalDeleteBtn");
   const modalCancelBtn = document.getElementById("modalCancelBtn");
+  const autoFetchBtn = document.getElementById("autoFetchBtn");
+  const tmdbResultsPanel = document.getElementById("tmdbResultsPanel");
+  const tmdbResultsGrid = document.getElementById("tmdbResultsGrid");
+  const tmdbResultsBackBtn = document.getElementById("tmdbResultsBackBtn");
 
   const toastEl = document.getElementById("toast");
 
   var editingKey = null;
+  var bulkModeItems = null; // set => Save applies posterUrl to all these items instead of a single key
+  var selectMode = false;
+  var selectedItems = {}; // id -> name (while selectMode is active)
   var allPosters = {}; // live Firebase snapshot: key -> {name, url, updatedAt}
 
   // ============================================================
@@ -766,11 +850,14 @@ service firebase.storage {
       var key = posterKeyEncode(f.name);
       var existing = allPosters[key];
       var placeholderIcon = isFolder ? "\uD83D\uDCC1" : (isVideoFile(f.name) ? "\uD83C\uDFAC" : "\uD83D\uDCE6");
+      var isSelected = !!selectedItems[f.id];
 
-      html += '<div class="fm-card" data-id="' + f.id + '" data-name="' + escapeHtml(f.name) + '" data-folder="' + isFolder + '">'
+      html += '<div class="fm-card' + (selectMode ? " select-mode" : "") + (isSelected ? " selected" : "")
+        + '" data-id="' + f.id + '" data-name="' + escapeHtml(f.name) + '" data-folder="' + isFolder + '">'
         + '<div class="fm-thumb" data-act="' + (isFolder ? "open" : "poster") + '">'
         + (existing && existing.url ? '<img src="' + escapeHtml(existing.url) + '" loading="lazy">' : '<div class="ph">' + placeholderIcon + '</div>')
         + (existing ? '<span class="poster-badge">\u2713</span>' : '')
+        + '<span class="select-check">\u2713</span>'
         + '</div>'
         + '<div class="fm-info">'
         + '<div class="fm-name">' + escapeHtml(f.name) + '</div>'
@@ -785,7 +872,20 @@ service firebase.storage {
     driveBrowseGrid.querySelectorAll(".fm-card").forEach(function (card) {
       var id = card.getAttribute("data-id");
       var name = card.getAttribute("data-name");
-      var isFolder = card.getAttribute("data-folder") === "true";
+
+      if (selectMode) {
+        card.addEventListener("click", function () {
+          if (selectedItems[id]) {
+            delete selectedItems[id];
+            card.classList.remove("selected");
+          } else {
+            selectedItems[id] = name;
+            card.classList.add("selected");
+          }
+          updateBulkBar();
+        });
+        return; // select-mode me normal open/poster actions disable rehte hain
+      }
 
       card.querySelectorAll('[data-act="open"]').forEach(function (el) {
         el.addEventListener("click", function () { openDriveFolder(id, name); });
@@ -804,6 +904,35 @@ service firebase.storage {
     var needsResolve = files.filter(function (f) { return !allPosters[posterKeyEncode(f.name)]; });
     resolvePostersForCards(needsResolve);
   }
+
+  // ============================================================
+  // Bulk selection (ek saath multiple files/folders par same poster lagana)
+  // ============================================================
+  selectModeBtn.addEventListener("click", function () {
+    selectMode = !selectMode;
+    selectModeBtn.textContent = selectMode ? "\u2715 Selection band karein" : "\u2611\uFE0F Select multiple";
+    if (!selectMode) selectedItems = {};
+    updateBulkBar();
+    loadDriveFolder(driveFolderStack[driveFolderStack.length - 1].id);
+  });
+
+  bulkCancelBtn.addEventListener("click", function () {
+    selectedItems = {};
+    updateBulkBar();
+    driveBrowseGrid.querySelectorAll(".fm-card.selected").forEach(function (c) { c.classList.remove("selected"); });
+  });
+
+  function updateBulkBar() {
+    var count = Object.keys(selectedItems).length;
+    bulkCountLabel.textContent = count + " selected";
+    bulkBar.classList.toggle("hidden", !selectMode || count === 0);
+  }
+
+  bulkApplyBtn.addEventListener("click", function () {
+    var items = Object.keys(selectedItems).map(function (id) { return { id: id, name: selectedItems[id] }; });
+    if (items.length === 0) return;
+    openBulkPosterModal(items);
+  });
 
   // ============================================================
   // Firebase posters — live list (used by "All Posters" tab + poster badges)
@@ -869,23 +998,50 @@ service firebase.storage {
   // Poster edit modal (shared by Drive-browse tap AND Manage-all tab)
   // ============================================================
   function openPosterModal(name, explicitKey) {
+    bulkModeItems = null;
     editingKey = explicitKey || posterKeyEncode(name);
     var existing = allPosters[editingKey];
     var tmdbFallbackUrl = tmdbPosterCache.hasOwnProperty(name) ? tmdbPosterCache[name] : null;
 
     modalTitle.textContent = existing ? "Edit poster" : "Set poster";
+    posterNameField.classList.remove("hidden");
+    bulkSummaryField.classList.add("hidden");
+    posterName.removeAttribute("readonly");
     posterName.value = name;
     posterUrl.value = existing ? (existing.url || "") : (tmdbFallbackUrl || "");
     posterFile.value = "";
     uploadProgress.style.display = "none";
     updatePreview(posterUrl.value);
     modalDeleteBtn.classList.toggle("hidden", !existing);
+    showModalForm();
+    modalOverlay.classList.add("active");
+  }
+
+  // Bulk mode: ek hi poster URL, ek saath selected sabhi items par set hoga
+  function openBulkPosterModal(items) {
+    bulkModeItems = items;
+    editingKey = null;
+
+    modalTitle.textContent = "Poster set karein (" + items.length + " items)";
+    posterNameField.classList.add("hidden");
+    bulkSummaryField.classList.remove("hidden");
+    var namesPreview = items.slice(0, 6).map(function (i) { return "\u2022 " + i.name; }).join("<br>");
+    if (items.length > 6) namesPreview += "<br>...aur " + (items.length - 6) + " aur";
+    bulkSummaryText.innerHTML = namesPreview;
+
+    posterUrl.value = "";
+    posterFile.value = "";
+    uploadProgress.style.display = "none";
+    updatePreview("");
+    modalDeleteBtn.classList.add("hidden");
+    showModalForm();
     modalOverlay.classList.add("active");
   }
 
   function closePosterModal() {
     modalOverlay.classList.remove("active");
     editingKey = null;
+    bulkModeItems = null;
   }
   modalCancelBtn.addEventListener("click", closePosterModal);
   modalOverlay.addEventListener("click", function (e) { if (e.target === modalOverlay) closePosterModal(); });
@@ -922,11 +1078,103 @@ service firebase.storage {
     });
   });
 
+  // ============================================================
+  // TMDB auto-fetch — sabhi matching results (movie + tv) gallery me
+  // dikhate hain, jisme se admin apni marzi se sahi poster chun sake.
+  // ============================================================
+  function showModalForm() {
+    tmdbResultsPanel.classList.add("hidden");
+    modalFormFields.classList.remove("hidden");
+  }
+  function showTmdbResults() {
+    modalFormFields.classList.add("hidden");
+    tmdbResultsPanel.classList.remove("hidden");
+  }
+
+  autoFetchBtn.addEventListener("click", function () {
+    var nameForSearch = bulkModeItems ? bulkModeItems[0].name : posterName.value.trim();
+    if (!nameForSearch) { showToast("Pehle naam daalein", false); return; }
+
+    tmdbResultsGrid.innerHTML = '<div class="empty-state"><div class="e">\u23F3</div><div class="t">Dhoond rahe hain...</div></div>';
+    showTmdbResults();
+
+    var parsed = tmdbParseFilename(nameForSearch);
+    tmdbSearchAll(parsed.title, parsed.year, function (results) {
+      renderTmdbResults(results);
+    });
+  });
+
+  tmdbResultsBackBtn.addEventListener("click", showModalForm);
+
+  function tmdbSearchAll(title, year, callback) {
+    var movieUrl = "https://api.themoviedb.org/3/search/movie?api_key=" + TMDB_API_KEY
+      + "&query=" + encodeURIComponent(title) + (year ? "&year=" + year : "");
+    var tvUrl = "https://api.themoviedb.org/3/search/tv?api_key=" + TMDB_API_KEY + "&query=" + encodeURIComponent(title);
+
+    Promise.all([
+      fetch(movieUrl).then(function (r) { return r.json(); }).catch(function () { return { results: [] }; }),
+      fetch(tvUrl).then(function (r) { return r.json(); }).catch(function () { return { results: [] }; })
+    ]).then(function (resArr) {
+      var movieResults = (resArr[0].results || []).slice(0, 10).map(function (m) {
+        return {
+          type: "movie",
+          title: m.title,
+          year: m.release_date ? m.release_date.substring(0, 4) : null,
+          posterUrl: m.poster_path ? TMDB_IMAGE_BASE + m.poster_path : null
+        };
+      });
+      var tvResults = (resArr[1].results || []).slice(0, 10).map(function (t) {
+        return {
+          type: "tv",
+          title: t.name,
+          year: t.first_air_date ? t.first_air_date.substring(0, 4) : null,
+          posterUrl: t.poster_path ? TMDB_IMAGE_BASE + t.poster_path : null
+        };
+      });
+      var combined = movieResults.concat(tvResults).filter(function (r) { return r.posterUrl; });
+      callback(combined);
+    }).catch(function () { callback([]); });
+  }
+
+  function renderTmdbResults(results) {
+    if (!results || results.length === 0) {
+      tmdbResultsGrid.innerHTML = '<div class="empty-state"><div class="e">\uD83D\uDD0D</div>'
+        + '<div class="t">Kuch nahi mila</div><div class="m">Naam thoda alag likh ke (Name field me) dubara try karein.</div></div>';
+      return;
+    }
+    var html = "";
+    results.forEach(function (r, idx) {
+      html += '<div class="tmdb-result-card" data-idx="' + idx + '">'
+        + '<div class="tmdb-result-thumb"><img src="' + escapeHtml(r.posterUrl) + '" loading="lazy"></div>'
+        + '<div class="tmdb-result-label">' + escapeHtml(r.title) + (r.year ? " (" + r.year + ")" : "")
+        + '<br><span class="tmdb-type-tag">' + (r.type === "tv" ? "TV" : "Movie") + '</span></div>'
+        + '</div>';
+    });
+    tmdbResultsGrid.innerHTML = html;
+
+    tmdbResultsGrid.querySelectorAll(".tmdb-result-card").forEach(function (card) {
+      card.addEventListener("click", function () {
+        var idx = parseInt(card.getAttribute("data-idx"), 10);
+        var r = results[idx];
+        posterUrl.value = r.posterUrl;
+        updatePreview(r.posterUrl);
+        showModalForm();
+        showToast("Poster select ho gaya - ab \"Save\" dabayein", true);
+      });
+    });
+  }
+
   modalSaveBtn.addEventListener("click", function () {
-    var name = posterName.value.trim();
     var url = posterUrl.value.trim();
-    if (!name) { showToast("Naam daalein", false); return; }
     if (!url) { showToast("Poster URL daalein ya image upload karein", false); return; }
+
+    if (bulkModeItems) {
+      saveBulkPosters(bulkModeItems, url);
+      return;
+    }
+
+    var name = posterName.value.trim();
+    if (!name) { showToast("Naam daalein", false); return; }
 
     var key = editingKey || posterKeyEncode(name);
     modalSaveBtn.disabled = true;
@@ -971,6 +1219,61 @@ service firebase.storage {
         );
       });
   });
+
+  // Ek hi poster URL, saare selected items ke apne-apne keys par ek saath
+  // (single multi-path update) save kar deta hai.
+  function saveBulkPosters(items, url) {
+    var updates = {};
+    var now = Date.now();
+    items.forEach(function (item) {
+      var key = posterKeyEncode(item.name);
+      updates["posters/" + key] = { name: item.name, url: url, updatedAt: now };
+    });
+
+    modalSaveBtn.disabled = true;
+    modalSaveBtn.textContent = "Saving...";
+    var settled = false;
+
+    var timeoutId = setTimeout(function () {
+      if (settled) return;
+      settled = true;
+      modalSaveBtn.disabled = false;
+      modalSaveBtn.textContent = "Save";
+      showToast("Save me time lag raha hai - Firebase Database Rules check karein", false);
+    }, 15000);
+
+    db.ref().update(updates)
+      .then(function () {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        modalSaveBtn.disabled = false;
+        modalSaveBtn.textContent = "Save";
+        showToast(items.length + " items ka poster set ho gaya \u2713", true);
+
+        // Bulk apply ke baad selection mode band karke normal browsing me wapas
+        selectedItems = {};
+        selectMode = false;
+        selectModeBtn.textContent = "\u2611\uFE0F Select multiple";
+        updateBulkBar();
+        closePosterModal();
+      })
+      .catch(function (err) {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        modalSaveBtn.disabled = false;
+        modalSaveBtn.textContent = "Save";
+        console.error("Bulk poster save failed:", err);
+        var isPermissionIssue = (err && err.code === "PERMISSION_DENIED");
+        showToast(
+          isPermissionIssue
+            ? "Save fail: Firebase Database Rules abhi tak set nahi hui hai"
+            : "Save fail: " + (err && err.message ? err.message : "Kuch galat hua"),
+          false
+        );
+      });
+  }
 
   modalDeleteBtn.addEventListener("click", function () {
     if (!editingKey) return;
