@@ -333,18 +333,10 @@ function ensureRootFoldersLoaded(callback, forceRefresh) {
 // sequence hai. Yahan naya path add karke Movie tab me kisi bhi gehre folder
 // ki files aasaani se laayi ja sakti hain.
 var MOVIE_TAB_EXTRA_PATHS = [
-  ["Marvel", "Avengers", "480p"]
-];
-var MOVIE_TAB_EXTRA_PATHS = [
-  ["Harry Potter", "480p"]
-];
-var MOVIE_TAB_EXTRA_PATHS = [
-  ["Pirates of the Caribbean", "480p"]
-];
-var MOVIE_TAB_EXTRA_PATHS = [
-  ["Transformer", "480p"]
-];
-var MOVIE_TAB_EXTRA_PATHS = [
+  ["Marvel", "Avengers", "480p"],
+  ["Harry Potter", "480p"],
+  ["Pirates of the Caribbean", "480p"],
+  ["Transformer", "480p"],
   ["DC", "480p"]
 ];
 
@@ -1772,4 +1764,4 @@ function escapeHtml(str) {
   var div = document.createElement("div");
   div.innerText = str == null ? "" : str;
   return div.innerHTML;
-}
+   }
