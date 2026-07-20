@@ -337,6 +337,7 @@ var MOVIE_TAB_EXTRA_PATHS = [
   ["Pirates of the Caribbean", "480p"],
   ["Transformer", "480p"],
   ["DC", "480p"]
+  ["Marvel", "X-Men"]
 ];
 
 function goMovies() {
@@ -855,6 +856,8 @@ function clearSearch() {
   searchInput.focus();
 }
 
+var searchRequestSeq = 0;
+
 searchInput.addEventListener("input", function () {
   var keyword = searchInput.value.trim();
   btnClearSearch.style.display = keyword.length ? "flex" : "none";
@@ -869,16 +872,25 @@ searchInput.addEventListener("input", function () {
 
   searchTimer = setTimeout(function () {
     showLoadingState(searchBody);
-    Android.searchFiles(keyword, "onSearchResults");
-  }, 400);
-});
+    searchRequestSeq++;
+    var mySeq = searchRequestSeq;
+    var cbName = "onSearchResults_" + mySeq;
 
-function onSearchResults(data) {
-  var keyword = searchInput.value.trim();
-  searchResultLabel.classList.remove("hidden");
-  searchResultLabel.textContent = 'Results for "' + keyword + '"';
-  renderGrid(data, searchBody, true);
-}
+    // Per-request callback: if the user kept typing and a newer search has
+    // since been fired, this (now-stale) response is dropped instead of
+    // flashing outdated results over the current keyword's results.
+    window[cbName] = function (data) {
+      delete window[cbName];
+      if (mySeq !== searchRequestSeq) return;
+      var keyword2 = searchInput.value.trim();
+      searchResultLabel.classList.remove("hidden");
+      searchResultLabel.textContent = 'Results for "' + keyword2 + '"';
+      renderGrid(data, searchBody, true);
+    };
+
+    Android.searchFiles(keyword, cbName);
+  }, 200);
+});
 
 // ==========================================================================
 // SHARED CARD RENDERING (used by both the grid and the row)
@@ -1119,6 +1131,7 @@ function closeActionSheet() {
 //   onDownloadComplete(fileId)
 //   onDownloadError(fileId, message)
 //   onDownloadCancelled(fileId)
+//   onDownloadPaused(fileId)
 //   onFolderDownloadQueued(filesJsonArrayString)  (folder scan ke baad)
 // ==========================================================================
 
@@ -1342,6 +1355,52 @@ function onDownloadCancelled(fileId) {
   removeDownloadEntryQuiet(fileId);
 }
 
+// Pause keeps the partial file - so unlike cancel, the row just switches
+// to a "paused" state (with a Resume button) instead of disappearing.
+function onDownloadPaused(fileId) {
+  upsertDownloadEntry({ id: fileId, status: "paused", speed: 0 });
+  if (viewMode === "downloads") renderDownloadsList();
+}
+
+function pauseSingleDownload(fileId) {
+  upsertDownloadEntry({ id: fileId, status: "paused", speed: 0 }); // optimistic, native callback confirms it
+  try { Android.pauseDownload(fileId); } catch (e) { /* older APK - ignore */ }
+  if (viewMode === "downloads") renderDownloadsList();
+}
+
+function resumeSingleDownload(fileId) {
+  var item = findDownloadEntry(fileId);
+  if (!item) return;
+  upsertDownloadEntry({ id: fileId, status: "downloading" });
+  try {
+    Android.downloadFile(item.id, item.name); // native side resumes from the .part file automatically
+  } catch (e) {
+    upsertDownloadEntry({ id: fileId, status: "error", errorMsg: "Could not resume" });
+  }
+  if (viewMode === "downloads") renderDownloadsList();
+}
+
+// "Pause" on the whole folder: every file in it that's currently
+// downloading (or still waiting its turn in the native queue) is paused
+// one by one - each keeps its own partial progress.
+function pauseFolderDownloads(folderName) {
+  var items = loadDownloads().filter(function (i) { return i.folderName === folderName; });
+  items.forEach(function (item) {
+    if (item.status === "downloading") pauseSingleDownload(item.id);
+  });
+  showToast('Paused "' + folderName + '"');
+}
+
+// "Continue"/Resume on the whole folder: every paused or failed file
+// picks back up from where it stopped.
+function continueFolderDownloads(folderName) {
+  var items = loadDownloads().filter(function (i) { return i.folderName === folderName; });
+  items.forEach(function (item) {
+    if (item.status === "paused" || item.status === "error") resumeSingleDownload(item.id);
+  });
+  showToast('Continuing "' + folderName + '"');
+}
+
 function goDownloads() {
   closeSearch();
   viewMode = "downloads";
@@ -1431,12 +1490,26 @@ function attachFolderGroupDeleteHandlers(container) {
       openConfirmDeleteFolder(btn.getAttribute("data-remove-folder"));
     });
   });
+  container.querySelectorAll(".download-folder-header [data-pause-folder]").forEach(function (btn) {
+    btn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      pauseFolderDownloads(btn.getAttribute("data-pause-folder"));
+    });
+  });
+  container.querySelectorAll(".download-folder-header [data-continue-folder]").forEach(function (btn) {
+    btn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      continueFolderDownloads(btn.getAttribute("data-continue-folder"));
+    });
+  });
 }
 
 // List-style progress rows only for folders that are currently
 // downloading (or failed) - completed folders don't show up here, they
 // become a folder-card in the grid above.
 function renderDownloadFolderGroupHtml(folderName, items, completedCount) {
+  var hasActive = items.some(function (i) { return i.status === "downloading"; });
+  var hasResumable = items.some(function (i) { return i.status === "paused" || i.status === "error"; });
   var html = '<div class="download-folder-group">'
     + '<div class="download-folder-header">'
     + '<div class="d-icon">\uD83D\uDCC1</div>'
@@ -1444,9 +1517,21 @@ function renderDownloadFolderGroupHtml(folderName, items, completedCount) {
     + '<div class="d-name">' + escapeHtml(folderName) + '</div>'
     + '<div class="d-sub">' + completedCount + ' / ' + items.length + ' files complete</div>'
     + '</div>'
-    + '<button class="d-btn remove" data-remove-folder="' + escapeHtml(folderName) + '" title="Delete entire folder">'
+    + '<div class="d-header-actions">';
+  if (hasActive) {
+    html += '<button class="d-btn pause" data-pause-folder="' + escapeHtml(folderName) + '" title="Pause all">'
+      + '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/></svg>'
+      + '</button>';
+  }
+  if (hasResumable) {
+    html += '<button class="d-btn resume" data-continue-folder="' + escapeHtml(folderName) + '" title="Continue download">'
+      + '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>'
+      + '</button>';
+  }
+  html += '<button class="d-btn remove" data-remove-folder="' + escapeHtml(folderName) + '" title="Delete entire folder">'
     + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>'
     + '</button>'
+    + '</div>'
     + '</div>'
     + '<div class="download-folder-items">';
   items.forEach(function (item) { html += renderDownloadRowHtml(item); });
@@ -1687,6 +1772,8 @@ function renderDownloadRowHtml(item) {
   if (item.status === "downloading") {
     subLine = pct + "%" + (sizeLine ? " \u00B7 " + sizeLine : "")
       + (item.speed > 0 ? " \u00B7 " + formatBytes(item.speed) + "/s" : " \u00B7 Starting...");
+  } else if (item.status === "paused") {
+    subLine = "\u23F8\uFE0F Paused" + (sizeLine ? " \u00B7 " + pct + "% \u00B7 " + sizeLine : "");
   } else if (item.status === "completed") {
     subLine = "Download complete" + (item.total > 0 ? " \u00B7 " + formatBytes(item.total) : "");
   } else {
@@ -1698,7 +1785,7 @@ function renderDownloadRowHtml(item) {
     + '<div class="d-info">'
     + '<div class="d-name">' + escapeHtml(item.name) + '</div>'
     + '<div class="d-sub">' + subLine + '</div>';
-  if (item.status === "downloading") {
+  if (item.status === "downloading" || item.status === "paused") {
     html += '<div class="d-progress-track"><div class="d-progress-fill" style="width:' + pct + '%"></div></div>';
   }
   html += '</div>'
@@ -1708,9 +1795,13 @@ function renderDownloadRowHtml(item) {
     html += '<button class="d-btn" data-act="play" title="Play">'
       + '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>'
       + '</button>';
-  } else if (item.status === "error") {
-    html += '<button class="d-btn" data-act="retry" title="Retry">'
-      + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>'
+  } else if (item.status === "error" || item.status === "paused") {
+    html += '<button class="d-btn resume" data-act="resume" title="' + (item.status === "paused" ? "Resume" : "Retry") + '">'
+      + '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>'
+      + '</button>';
+  } else if (item.status === "downloading") {
+    html += '<button class="d-btn pause" data-act="pause" title="Pause">'
+      + '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/></svg>'
       + '</button>';
   }
 
@@ -1739,10 +1830,17 @@ function attachDownloadRowHandlers() {
       });
     }
 
-    var retryBtn = row.querySelector('[data-act="retry"]');
-    if (retryBtn) {
-      retryBtn.addEventListener("click", function () {
-        retryDownload(item.id);
+    var resumeBtn = row.querySelector('[data-act="resume"]');
+    if (resumeBtn) {
+      resumeBtn.addEventListener("click", function () {
+        resumeSingleDownload(item.id);
+      });
+    }
+
+    var pauseBtn = row.querySelector('[data-act="pause"]');
+    if (pauseBtn) {
+      pauseBtn.addEventListener("click", function () {
+        pauseSingleDownload(item.id);
       });
     }
 
@@ -1766,4 +1864,4 @@ function escapeHtml(str) {
   var div = document.createElement("div");
   div.innerText = str == null ? "" : str;
   return div.innerHTML;
-}
+  }
