@@ -5,42 +5,41 @@
 //  downloadFile, downloadFolder)
 //
 // VIEW MODES:
-//   'home'      -> Netflix-style rows: har top-level folder (Marvel, Anime &
-//                  Animation, ...) ek row hai, us folder ke andar jo bhi
-//                  folders/files hain wahi row me cards ban ke dikhte hain.
-//   'browse'    -> Purana grid-drilldown view (kisi bhi folder ke andar ghuso
-//                  to sab kuch waisi hi 3-column grid me dikhta hai jaisa
-//                  pehle dikhta tha).
-//   'downloads' -> Downloads tab: jo bhi cheez download ke liye tap ki gayi
-//                  thi uski list yahan dikhti hai.
+//   'home'      -> Netflix-style rows: every top-level folder (Marvel, Anime &
+//                  Animation, ...) is a row, and whatever folders/files are
+//                  inside that folder show up as cards in that same row.
+//   'browse'    -> Old grid-drilldown view (entering any folder shows
+//                  everything in the same 3-column grid as it used to
+//                  look before).
+//   'downloads' -> Downloads tab: shows the list of anything that was
+//                  tapped to download.
 //
 // CARD CLICK BEHAVIOUR:
-//   Kisi bhi card (file ya folder) par tap karne se ek action-sheet popup
-//   khulta hai:
-//     - File hui to:   "Play" (turant stream) ya "Download" (device me save)
-//     - Folder hui to: "View" (andar ghuso)   ya "Download" (poori folder
-//                       ke andar ki files download)
-//   Download dabane par woh item Downloads tab me chala jaata hai.
+//   Tapping any card (file or folder) opens an action-sheet popup:
+//     - If it's a file:   "Play" (stream instantly) or "Download" (save to device)
+//     - If it's a folder: "View" (open it) or "Download" (download all
+//                       files inside the folder)
+//   Pressing Download moves that item into the Downloads tab.
 // ==========================================================================
 
 var LOCKED_ROOT_FOLDER_ID = "17s88x00QQXAnTQtFWasBIOcgRqziTEnQ";
 
 // ==========================================================================
-// CUSTOM POSTERS (admin.html se Firebase Realtime Database me set kiye hue)
-// Admin panel me kisi folder/file ke exact naam ke against ek poster URL
-// save hota hai; app yahan se sabko ek baar me fetch karke cache kar leta
-// hai, aur TMDB se poster maangne se PEHLE yahi check karta hai - agar
-// admin ne custom poster laga rakha hai to wahi use hota hai.
+// CUSTOM POSTERS (set from admin.html into Firebase Realtime Database)
+// The admin panel saves a poster URL against a folder/file's exact name;
+// the app fetches all of them at once here and caches them, and checks
+// this BEFORE requesting a poster from TMDB - if the admin has set a
+// custom poster, that one is used instead.
 // ==========================================================================
 
 var FIREBASE_DB_URL = "https://dflix-7b2d2-default-rtdb.firebaseio.com";
 var customPosterMap = {}; // encodedKey(name) -> image URL
 
-// Firebase Realtime Database ke key me ". # $ [ ] /" allowed nahi hote,
-// lekin file/folder naam me dots (jaise "Movie.2023.1080p.mkv") aam hote
-// hain - isliye un characters ko ek safe, reversible-jaisi encoding me
-// badal dete hain. admin.html me bhi bilkul yahi function hai, taaki
-// dono taraf ka key hamesha match kare.
+// Firebase Realtime Database keys don't allow ". # $ [ ] /", but dots
+// are common in file/folder names (like "Movie.2023.1080p.mkv") - so we
+// convert those characters into a safe, reversible-style encoding.
+// admin.html has the exact same function, so the key always matches on
+// both sides.
 function posterKeyEncode(name) {
   var normalized = (name || "").trim().toLowerCase().replace(/\s+/g, " ");
   return normalized.replace(/[.#$\[\]\/]/g, function (ch) {
@@ -62,12 +61,12 @@ function loadCustomPosters() {
       customPosterMap = map;
     })
     .catch(function () {
-      // Firebase unreachable / offline - bas TMDB posters hi chalte rahenge
+      // Firebase unreachable / offline - just fall back to TMDB posters
     });
 }
 
 var viewMode = "home";
-var currentDownloadFolderName = null; // downloads tab me abhi kis folder ke andar hain
+var currentDownloadFolderName = null; // which folder we're currently inside, in the downloads tab
 var folderStack = [{ id: LOCKED_ROOT_FOLDER_ID, name: "My Drive" }];
 var currentFolderId = LOCKED_ROOT_FOLDER_ID;
 var searchTimer = null;
@@ -75,13 +74,13 @@ var searchTimer = null;
 var homeRowsCache = null;   // { folders: [...], looseFiles: [...] } - root listing cache
 var pendingHeroChecks = 0;
 
-// Hero banner ab ek carousel hai: 5-6 trending items collect karke har
-// HERO_ROTATE_MS par ek se doosre par crossfade hote rahte hain.
+// The hero banner is now a carousel: it collects 5-6 trending items and
+// crossfades from one to the next every HERO_ROTATE_MS.
 var HERO_MAX_CANDIDATES = 6;
 var HERO_ROTATE_MS = 5000;
 var heroCandidates = [];   // [{ id, name, rowTitle, poster }]
 var heroCandidateIndex = 0;
-var heroActiveLayer = 0;   // kaunsi bg layer (0/1) abhi visible hai
+var heroActiveLayer = 0;   // which bg layer (0/1) is currently visible
 var heroRotateTimer = null;
 
 // ---------- Elements ----------
@@ -127,16 +126,16 @@ var downloadsListEl = document.getElementById("downloadsList");
 
 // ==========================================================================
 // TV REMOTE NAVIGATION (bottom nav bar)
-// Android side D-pad key events ko WebView ke andar normal keyboard
-// KeyboardEvent (ArrowLeft/ArrowRight/Enter) ki tarah bhej deta hai (jab
-// tak WebView ko Android focus mila ho - dekho MainActivity.java). Yahan
-// bas un keys ko sunke bottom-nav ke items ke beech left/right cursor move
-// karte hain aur "Enter"/OK dabane par jahan cursor hai wahi tab khulta hai.
+// On the Android side, D-pad key events get sent into the WebView as
+// normal keyboard KeyboardEvents (ArrowLeft/ArrowRight/Enter), as long as
+// the WebView has Android focus - see MainActivity.java. Here we just
+// listen for those keys to move the left/right cursor between bottom-nav
+// items, and pressing "Enter"/OK opens whichever tab the cursor is on.
 // ==========================================================================
 
-var tvNavItems = [];     // bottom-nav ke saare buttons, left-to-right order me
-var tvNavIndex = 0;      // abhi remote ka "cursor" kis index par hai
-var tvNavActive = false; // jab tak user pehli baar D-pad na dabaye, koi highlight nahi dikhta
+var tvNavItems = [];     // all bottom-nav buttons, in left-to-right order
+var tvNavIndex = 0;      // which index the remote "cursor" is currently on
+var tvNavActive = false; // no highlight shows until the user presses the D-pad for the first time
 
 function initTvNav() {
   tvNavItems = Array.prototype.slice.call(document.querySelectorAll(".bottom-nav .nav-item"));
@@ -162,13 +161,13 @@ function setTvNavFocus(index) {
   tvNavIndex = index;
   var el = tvNavItems[tvNavIndex];
   el.classList.add("focused");
-  try { el.focus(); } catch (e) { /* kuch WebView versions me focus() fail ho sakta hai - koi baat nahi */ }
+  try { el.focus(); } catch (e) { /* focus() can fail on some WebView versions - that's fine */ }
   tvNavActive = true;
 }
 
 function moveTvNavFocus(delta) {
   if (!tvNavActive) {
-    // Pehli baar D-pad dabane par, abhi jo tab active hai wahi se cursor shuru ho
+    // The first time the D-pad is pressed, start the cursor on whichever tab is currently active
     var activeIdx = 0;
     for (var i = 0; i < tvNavItems.length; i++) {
       if (tvNavItems[i].classList.contains("active")) { activeIdx = i; break; }
@@ -184,8 +183,8 @@ function activateTvNavFocus() {
   tvNavItems[tvNavIndex].click();
 }
 
-// Nav item par touch/mouse se tap kiya to bhi remote-cursor ko usi item
-// par sync kar dete hain, taaki agla D-pad press wahin se aage badhe.
+// If a nav item is tapped with touch/mouse, sync the remote-cursor to
+// that same item, so the next D-pad press continues from there.
 function syncTvNavToClickedItem(el) {
   var idx = tvNavItems.indexOf(el);
   if (idx !== -1) {
@@ -259,7 +258,7 @@ function showMain() {
 
 // ---------- Login ----------
 loginBtn.addEventListener("click", function () {
-  loginStatus.textContent = "Google login khul raha hai...";
+  loginStatus.textContent = "Opening Google login...";
   Android.login();
 });
 
@@ -268,7 +267,7 @@ function onLoginComplete(success) {
     loginStatus.textContent = "";
     showMain();
   } else {
-    loginStatus.textContent = "Login fail ho gaya, dobara try karein.";
+    loginStatus.textContent = "Login failed, please try again.";
   }
 }
 
@@ -287,9 +286,9 @@ function goHome(force) {
 
 // ==========================================================================
 // MOVIE / WEB SERIES TABS
-// "Movie" tab = root ke "Bollywood" + "Hollywood" naam wale folders ka
-// content ek saath. "Web Series" tab = root ke "Web Series" naam wale
-// folder ka content. Naam case-insensitive match hote hain.
+// "Movie" tab = content of the root's "Bollywood" + "Hollywood" folders
+// combined. "Web Series" tab = content of the root's "Web Series"
+// folder. Names are matched case-insensitively.
 // ==========================================================================
 
 var tempCbSeq = 0;
@@ -303,7 +302,7 @@ function registerTempCallback(fn) {
   return name;
 }
 
-// Root folder listing already cache me ho to wahi use karo, warna fetch karo
+// Use the cached root folder listing if it's already available, otherwise fetch it
 function ensureRootFoldersLoaded(callback, forceRefresh) {
   if (!forceRefresh && homeRowsCache && homeRowsCache.folders) {
     callback(homeRowsCache.folders);
@@ -328,18 +327,16 @@ function ensureRootFoldersLoaded(callback, forceRefresh) {
   Android.listFiles(LOCKED_ROOT_FOLDER_ID, cbName);
 }
 
-// Movie tab me Bollywood/Hollywood ke alawa in "nested paths" ki files bhi
-// shaamil hoti hain - har entry root se andar tak ke folder-naamon ka
-// sequence hai. Yahan naya path add karke Movie tab me kisi bhi gehre folder
-// ki files aasaani se laayi ja sakti hain.
+// The Movie tab also includes files from these "nested paths" besides
+// Bollywood/Hollywood - each entry is a sequence of folder names from the
+// root going inward. Adding a new path here makes it easy to pull in
+// files from any deeply nested folder into the Movie tab.
 var MOVIE_TAB_EXTRA_PATHS = [
   ["Marvel", "Avengers", "480p"],
   ["Harry Potter", "480p"],
   ["Pirates of the Caribbean", "480p"],
   ["Transformer", "480p"],
-  ["DC", "480p"],
-  ["Animation", "Animation"]
-  
+  ["DC", "480p"]
 ];
 
 function goMovies() {
@@ -364,15 +361,16 @@ function goWebSeries() {
   loadCategoryFolders(["Web Series"], "Web Series", false);
 }
 
-// Folder naam compare karte waqt case, extra spaces, aur punctuation ignore
-// karte hain (e.g. "Hollywood", "hollywood ", "Holly-Wood" sab match karega),
-// taaki thoda bhi naming farak hone par category tab khaali na reh jaaye.
+// When comparing folder names, ignore case, extra spaces, and punctuation
+// (e.g. "Hollywood", "hollywood ", "Holly-Wood" will all match), so the
+// category tab doesn't end up empty over a minor naming difference.
 function normalizeFolderName(name) {
   return (name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
-// Fisher-Yates shuffle - Bollywood/Hollywood ek line/order me (jaise Drive
-// me pehle se sorted hain) na dikhein, balki har baar mix/random order me.
+// Fisher-Yates shuffle - so Bollywood/Hollywood don't show in a fixed
+// order (like they're already sorted in Drive), but in a mixed/random
+// order each time.
 function shuffleArray(arr) {
   var a = arr.slice();
   for (var i = a.length - 1; i > 0; i--) {
@@ -404,8 +402,8 @@ function loadCategoryFolders(folderNameList, label, shuffleResults, extraNestedP
     var totalTasks = matches.length + paths.length;
 
     if (totalTasks === 0) {
-      showStateScreen(gridEl, "\uD83D\uDCED", "Kuch nahi mila",
-        '"' + folderNameList.join(" / ") + '" naam ka folder Drive me nahi mila.');
+      showStateScreen(gridEl, "\uD83D\uDCED", "Nothing found",
+        'No folder named "' + folderNameList.join(" / ") + '" was found in Drive.');
       return;
     }
 
@@ -416,8 +414,8 @@ function loadCategoryFolders(folderNameList, label, shuffleResults, extraNestedP
       remaining--;
       if (remaining === 0) {
         if (combined.length === 0) {
-          showStateScreen(gridEl, "\uD83D\uDCED", "Kuch nahi mila",
-            '"' + folderNameList.join(" / ") + '" naam ka folder Drive me nahi mila.');
+          showStateScreen(gridEl, "\uD83D\uDCED", "Nothing found",
+            'No folder named "' + folderNameList.join(" / ") + '" was found in Drive.');
           return;
         }
         renderGrid({ files: shuffleResults ? shuffleArray(combined) : combined }, gridEl, false);
@@ -446,11 +444,11 @@ function loadCategoryFolders(folderNameList, label, shuffleResults, extraNestedP
   }, true);
 }
 
-// Root ke andar naam se ek folder dhoondh kar (jaise "Marvel"), phir uske
-// andar agla naam (jaise "Avengers"), phir agla (jaise "480p") - is tarah
-// path ke aakhri folder tak pahunch kar wahan ki saari files callback me
-// deta hai. Kisi bhi step par folder na mile to khaali list de deta hai
-// (baaki category items par koi asar nahi padta).
+// Finds a folder by name inside the root (like "Marvel"), then the next
+// name inside that (like "Avengers"), then the next (like "480p") - this
+// way it reaches the last folder in the path and passes all its files to
+// the callback. If a folder isn't found at any step, it passes an empty
+// list (this doesn't affect the other category items).
 function resolveNestedFolderFiles(rootFolders, pathNames, callback) {
   if (!pathNames || pathNames.length === 0) { callback([]); return; }
 
@@ -504,7 +502,7 @@ function descendFolderPath(folderId, remainingNames, callback) {
 }
 
 function comingSoon(label) {
-  showToast(label + " jaldi aa raha hai!");
+  showToast(label + " is coming soon!");
 }
 
 function setActiveNav(el) {
@@ -542,7 +540,7 @@ function handleBackPress() {
   return false;
 }
 
-// Visible back-chevron in header (browse-mode me) + hardware-back dono isi ko use karte hain
+// Both the visible back-chevron in the header (in browse-mode) and hardware-back use this
 function goBackFolder() {
   if (viewMode === "downloadFolder") {
     exitDownloadFolderLevel();
@@ -584,7 +582,7 @@ function onHomeRootLoaded(data) {
   if (data && data.error) {
     if (data.error === "not_logged_in") { showLogin(); return; }
     rowsContainerEl.innerHTML = "";
-    showStateScreen(rowsContainerEl, "\u26A0\uFE0F", "Kuch gadbad ho gayi", escapeHtml(data.error));
+    showStateScreen(rowsContainerEl, "\u26A0\uFE0F", "Something went wrong", escapeHtml(data.error));
     return;
   }
 
@@ -610,7 +608,7 @@ function renderHomeFromCache() {
 
   if (folders.length === 0 && looseFiles.length === 0) {
     rowsContainerEl.innerHTML = "";
-    showStateScreen(rowsContainerEl, "\uD83D\uDCED", "Kuch nahi mila", "Yeh Drive folder khali hai.");
+    showStateScreen(rowsContainerEl, "\uD83D\uDCED", "Nothing found", "This Drive folder is empty.");
     return;
   }
 
@@ -696,8 +694,8 @@ function renderRow(rowId, files) {
   lazyLoadPostersIn(rowEl);
 }
 
-// Har row se ek-ek trending video file uthake HERO_MAX_CANDIDATES tak
-// candidates ikattha karte hain - inhi ke beech hero banner rotate hota hai.
+// Picks one trending video file from each row and collects candidates up
+// to HERO_MAX_CANDIDATES - the hero banner rotates between these.
 function setHeroFromFiles(files, rowTitle) {
   if (heroCandidates.length >= HERO_MAX_CANDIDATES) return;
   for (var i = 0; i < files.length; i++) {
@@ -709,8 +707,8 @@ function setHeroFromFiles(files, rowTitle) {
   }
 }
 
-// Home ke sabhi rows load ho chuke hain - agar kam se kam ek trending
-// candidate mila to carousel shuru karo, warna "Coming Soon" dikhao.
+// All the home rows have finished loading - if at least one trending
+// candidate was found, start the carousel, otherwise show "Coming Soon".
 function checkHeroFallback() {
   pendingHeroChecks--;
   if (pendingHeroChecks <= 0) {
@@ -791,7 +789,7 @@ function applyHeroBackground(url) {
 function setHeroComingSoon() {
   heroTagEl.textContent = "COMING SOON";
   applyHeroBackground(null);
-  heroPlayBtn.onclick = function () { showToast("Jaldi aa raha hai!"); };
+  heroPlayBtn.onclick = function () { showToast("Coming soon!"); };
 }
 
 function requestHeroPoster(fileName, idx) {
@@ -804,13 +802,13 @@ function requestHeroPoster(fileName, idx) {
   try {
     Android.resolveBackdrop(fileName, "heroReq_" + idx);
   } catch (e) {
-    // Purani APK build jisme resolveBackdrop nahi hai - poster hi sahi
+    // Older APK build without resolveBackdrop - fall back to the poster
     try { Android.resolvePoster(fileName, "heroReq_" + idx); } catch (e2) { /* ignore */ }
   }
 }
 
 // ==========================================================================
-// BROWSE VIEW (purana grid drilldown - folder ke andar ghusne ke baad)
+// BROWSE VIEW (old grid drilldown - after entering a folder)
 // ==========================================================================
 
 function enterBrowseFolder(id, name) {
@@ -883,7 +881,7 @@ function onSearchResults(data) {
 }
 
 // ==========================================================================
-// SHARED CARD RENDERING (grid ho ya row, dono isi se banate hain)
+// SHARED CARD RENDERING (used by both the grid and the row)
 // ==========================================================================
 
 var posterUidSeq = 0;
@@ -926,14 +924,14 @@ function attachCardHandlers(container, isSearchContext) {
   });
 }
 
-// ---------- Render (classic 3-column grid - browse-mode + search dono use karte hain) ----------
+// ---------- Render (classic 3-column grid - used by both browse-mode and search) ----------
 function renderGrid(data, container, isSearch) {
   if (data && data.error) {
     if (data.error === "not_logged_in") {
       showLogin();
       return;
     }
-    showStateScreen(container, "\u26A0\uFE0F", "Kuch gadbad ho gayi", escapeHtml(data.error));
+    showStateScreen(container, "\u26A0\uFE0F", "Something went wrong", escapeHtml(data.error));
     showToast("Error: " + data.error);
     return;
   }
@@ -941,8 +939,8 @@ function renderGrid(data, container, isSearch) {
   var files = (data && data.files) ? data.files : [];
 
   if (files.length === 0) {
-    showStateScreen(container, "\uD83D\uDCED", "Kuch nahi mila",
-      isSearch ? "Is naam se koi file nahi mili." : "Yeh folder khali hai.");
+    showStateScreen(container, "\uD83D\uDCED", "Nothing found",
+      isSearch ? "No file found with this name." : "This folder is empty.");
     return;
   }
 
@@ -977,7 +975,7 @@ function showToast(msg) {
 }
 
 // ==========================================================================
-// TMDB POSTERS (lazy load) - ab folder-cards aur video-cards dono ke liye
+// TMDB POSTERS (lazy load) - now used for both folder-cards and video-cards
 // ==========================================================================
 
 function isVideoFile(name) {
@@ -1018,7 +1016,7 @@ function requestPoster(query, iconEl) {
     pendingPosterRequests[reqId] = iconEl;
     Android.resolvePoster(query, reqId);
   } catch (e) {
-    // Android.resolvePoster available nahi hai (purana build) - icon hi rehne do
+    // Android.resolvePoster is not available (older build) - just leave the icon as is
   }
 }
 
@@ -1045,7 +1043,7 @@ function onPosterResolved(requestId, dataUrl) {
 }
 
 // ==========================================================================
-// ACTION SHEET (har card tap par: Play/View + Download)
+// ACTION SHEET (on every card tap: Play/View + Download)
 // ==========================================================================
 
 function formatBytes(bytes) {
@@ -1068,20 +1066,20 @@ function openActionSheet(id, name, isFolder) {
   if (isFolder) {
     html += '<div class="action-option" id="actionPrimary">'
       + '<div class="a-icon">' + folderIcon + '</div>'
-      + '<div><div class="a-label">Folder View karein</div><div class="a-sub">Andar ki files dekhein</div></div>'
+      + '<div><div class="a-label">View Folder</div><div class="a-sub">View files inside</div></div>'
       + '</div>';
     html += '<div class="action-option" id="actionDownload">'
       + '<div class="a-icon">' + downloadIcon + '</div>'
-      + '<div><div class="a-label">Folder Download karein</div><div class="a-sub">App ke andar hi save hongi (offline)</div></div>'
+      + '<div><div class="a-label">Download Folder</div><div class="a-sub">Saved inside the app (offline)</div></div>'
       + '</div>';
   } else {
     html += '<div class="action-option" id="actionPrimary">'
       + '<div class="a-icon">' + playIcon + '</div>'
-      + '<div><div class="a-label">Play karein</div><div class="a-sub">Turant stream karke dekhein</div></div>'
+      + '<div><div class="a-label">Play</div><div class="a-sub">Stream and watch instantly</div></div>'
       + '</div>';
     html += '<div class="action-option" id="actionDownload">'
       + '<div class="a-icon">' + downloadIcon + '</div>'
-      + '<div><div class="a-label">Download karein</div><div class="a-sub">App ke andar hi save hoga (offline)</div></div>'
+      + '<div><div class="a-label">Download</div><div class="a-sub">Saved inside the app (offline)</div></div>'
       + '</div>';
   }
   actionSheetBody.innerHTML = html;
@@ -1113,10 +1111,10 @@ function closeActionSheet() {
 
 // ==========================================================================
 // DOWNLOADS
-// Files sirf app ke apne private storage me save hote hain (public
-// "Downloads" folder ya kisi file-manager me nahi dikhte) - isliye koi
-// storage permission bhi nahi maangni padti. Progress (kitna download hua,
-// kitni speed) Java se live callback ke through yahan update hota hai:
+// Files are saved only in the app's own private storage (they don't show
+// up in the public "Downloads" folder or in any file manager) - so no
+// storage permission needs to be requested either. Progress (how much has
+// downloaded, at what speed) is updated here through a live callback from Java:
 //   onDownloadProgress(fileId, receivedBytes, totalBytes, speedBytesPerSec)
 //   onDownloadComplete(fileId)
 //   onDownloadError(fileId, message)
@@ -1141,16 +1139,16 @@ function saveDownloads(list) {
   } catch (e) { /* storage full/unavailable - ignore */ }
 }
 
-// App dobara khulne par purane "downloading" status wale items ka asli
-// native task zinda nahi rehta (process hi restart ho chuka hota hai),
-// isliye unhe turant "error" (retry-able) maan lete hain.
+// When the app reopens, the real native task for items that had a
+// "downloading" status doesn't survive (the process itself has
+// restarted), so they're immediately marked as "error" (retry-able).
 (function sanitizeStaleDownloadsOnLoad() {
   var list = loadDownloads();
   var changed = false;
   list.forEach(function (item) {
     if (item.status === "downloading") {
       item.status = "error";
-      item.errorMsg = "App band hone se download ruk gaya tha";
+      item.errorMsg = "Download stopped because the app was closed";
       changed = true;
     }
   });
@@ -1166,10 +1164,11 @@ function upsertDownloadEntry(patch) {
   if (idx === -1) {
     list.unshift(patch);
   } else {
-    // Sirf fields update karo, position ko chhedo mat - warna har
-    // onDownloadProgress tick par (jo har ~500ms me aata hai) ye item
-    // list ke top par chala jaata, aur poori sequence (jaise Episode 1,
-    // Episode 2, Episode 3...) baar baar shuffle ho jaati.
+    // Only update the fields, don't touch the position - otherwise on
+    // every onDownloadProgress tick (which comes roughly every ~500ms)
+    // this item would jump to the top of the list, and the whole
+    // sequence (like Episode 1, Episode 2, Episode 3...) would keep
+    // getting shuffled around.
     var merged = list[idx];
     for (var key in patch) {
       if (patch.hasOwnProperty(key)) merged[key] = patch[key];
@@ -1181,10 +1180,10 @@ function upsertDownloadEntry(patch) {
   return list;
 }
 
-// Folder download shuru karte waqt saari files ek saath, unke original
-// (natural) sequence me hi list me daalta hai. Ek-ek karke upsertDownloadEntry
-// bulane se order ulta ho jaata (last file sabse upar aa jaati) - isliye
-// yahan ek hi baar me poore batch ko sahi order me prepend karte hain.
+// When a folder download starts, all its files are added to the list
+// together, in their original (natural) order. Calling upsertDownloadEntry
+// one at a time would reverse the order (the last file would end up on
+// top) - so here the whole batch is prepended at once, in the correct order.
 function upsertDownloadEntriesBatch(patches) {
   if (!patches || patches.length === 0) return;
   var list = loadDownloads();
@@ -1204,8 +1203,8 @@ function findDownloadEntry(id) {
   return null;
 }
 
-// Cancel/error jaisi automatic situations me list se hata dena (bina confirm ke) -
-// isme file already delete ho chuki hoti hai native side par (LocalDownloadManager).
+// For automatic situations like cancel/error, remove from the list without
+// a confirmation - the file has already been deleted natively (LocalDownloadManager).
 function removeDownloadEntryQuiet(id) {
   var list = loadDownloads().filter(function (i) { return i.id !== id; });
   saveDownloads(list);
@@ -1213,14 +1212,14 @@ function removeDownloadEntryQuiet(id) {
   refreshDownloadFolderViewIfOpen();
 }
 
-// User "Delete/Cancel" button dabaye to pehle confirm popup dikhao.
+// If the user presses the "Delete/Cancel" button, show a confirmation popup first.
 function openConfirmDelete(id, name) {
   var item = findDownloadEntry(id);
   var isDownloading = item && item.status === "downloading";
-  confirmTitle.textContent = isDownloading ? "Download cancel karein?" : "Delete karein?";
+  confirmTitle.textContent = isDownloading ? "Cancel download?" : "Delete?";
   confirmMsg.textContent = isDownloading
-    ? '"' + name + '" ka download rok kar adhoori file delete ho jaayegi.'
-    : '"' + name + '" hamesha ke liye delete ho jaayegi. Ye wapas nahi aayegi.';
+    ? 'Stopping the download of "' + name + '" will delete the incomplete file.'
+    : '"' + name + '" will be permanently deleted. This cannot be undone.';
   confirmDeleteBtn.onclick = function () {
     closeConfirm();
     performDelete(id, name);
@@ -1232,12 +1231,12 @@ function closeConfirm() {
   confirmOverlay.classList.remove("active");
 }
 
-// Poori folder (uske andar ki saari files, chahe download ho chuki ho ya
-// abhi chal rahi ho) ek hi confirm ke saath delete karne ke liye.
+// For deleting an entire folder (all files inside it, whether already
+// downloaded or still in progress) with a single confirmation.
 function openConfirmDeleteFolder(folderName) {
   var items = loadDownloads().filter(function (i) { return i.folderName === folderName; });
-  confirmTitle.textContent = "Pura folder delete karein?";
-  confirmMsg.textContent = '"' + folderName + '" ki saari (' + items.length + ') files hamesha ke liye delete ho jaayengi.';
+  confirmTitle.textContent = "Delete All";
+  confirmMsg.textContent = 'All (' + items.length + ') files in "' + folderName + '" will be permanently deleted.';
   confirmDeleteBtn.onclick = function () {
     closeConfirm();
     performDeleteFolder(folderName);
@@ -1248,7 +1247,7 @@ function openConfirmDeleteFolder(folderName) {
 function performDeleteFolder(folderName) {
   var items = loadDownloads().filter(function (i) { return i.folderName === folderName; });
   items.forEach(function (item) {
-    try { Android.deleteDownloadedFile(item.id, item.name); } catch (e) { /* purani APK ho to bhi list se to hata hi dete hain */ }
+    try { Android.deleteDownloadedFile(item.id, item.name); } catch (e) { /* even on an older APK, still remove it from the list */ }
   });
   var list = loadDownloads().filter(function (i) { return i.folderName !== folderName; });
   saveDownloads(list);
@@ -1257,19 +1256,19 @@ function performDeleteFolder(folderName) {
   } else {
     renderDownloadsList();
   }
-  showToast('"' + folderName + '" delete ho gayi');
+  showToast('"' + folderName + '" was deleted');
 }
 
-// Confirm ke baad asli delete: native side file disk se bhi hata deta hai.
+// The actual delete after confirmation: the native side also removes the file from disk.
 function performDelete(id, name) {
   try {
     Android.deleteDownloadedFile(id, name);
-  } catch (e) { /* purani APK ho to bhi list se to hata hi dete hain */ }
+  } catch (e) { /* even on an older APK, still remove it from the list */ }
   var list = loadDownloads().filter(function (i) { return i.id !== id; });
   saveDownloads(list);
   renderDownloadsList();
   refreshDownloadFolderViewIfOpen();
-  showToast("Delete ho gaya");
+  showToast("Deleted");
 }
 
 function startFileDownload(fileId, fileName) {
@@ -1280,9 +1279,9 @@ function startFileDownload(fileId, fileName) {
   try {
     Android.downloadFile(fileId, fileName);
   } catch (e) {
-    upsertDownloadEntry({ id: fileId, status: "error", errorMsg: "Download shuru nahi ho paya" });
+    upsertDownloadEntry({ id: fileId, status: "error", errorMsg: "Download could not start" });
   }
-  showToast("Download shuru: " + fileName);
+  showToast("Download started: " + fileName);
   goDownloads();
 }
 
@@ -1296,18 +1295,18 @@ function startFolderDownload(folderId, folderName) {
   try {
     Android.downloadFolder(folderId, folderName);
   } catch (e) {
-    showToast("Folder download is device par support nahi hai");
+    showToast("Content download is not supported on this device");
     return;
   }
-  showToast("Folder scan ho raha hai: " + folderName);
+  showToast("Scanning folder: " + folderName);
   goDownloads();
 }
 
-// Native folder listing complete hone ke baad har file ke liye ek downloading
-// entry add hoti hai (Java khud sabki download bhi shuru kar deta hai).
-// folderName se in files ko Downloads tab me "folder-wise" (ek group ke
-// andar) dikhaya jaata hai - bilkul waise hi jaise Drive me folder-structure
-// hoti hai.
+// Once the native folder listing is complete, a downloading entry is
+// added for each file (Java itself starts downloading all of them too).
+// These files are shown in the Downloads tab "folder-wise" (grouped
+// inside one folder) by folderName - exactly like the folder structure
+// in Drive.
 function onFolderDownloadQueued(filesJson, folderName) {
   var files = [];
   try { files = JSON.parse(filesJson); } catch (e) { files = []; }
@@ -1335,7 +1334,7 @@ function onDownloadComplete(fileId) {
 }
 
 function onDownloadError(fileId, message) {
-  upsertDownloadEntry({ id: fileId, status: "error", errorMsg: message || "Download fail ho gaya", speed: 0 });
+  upsertDownloadEntry({ id: fileId, status: "error", errorMsg: message || "Download failed", speed: 0 });
   if (viewMode === "downloads") renderDownloadsList();
 }
 
@@ -1361,14 +1360,14 @@ function renderDownloadsList() {
 
   if (list.length === 0) {
     downloadsListEl.innerHTML = "";
-    showStateScreen(downloadsListEl, "\u2B07\uFE0F", "Koi download nahi",
-      "Kisi bhi movie ya folder par tap karke \"Download\" dabayein.");
+    showStateScreen(downloadsListEl, "\u2B07\uFE0F", "No downloads",
+      "Tap on any movie or folder and press \"Download\".");
     return;
   }
 
-  // folder se download ki gayi files ko usi folder ke naam se group karte
-  // hain (Drive me jaisi structure thi waisi hi yahan bhi dikhe); jo files
-  // seedhe (bina folder ke) download hui hain wo standalone gin li jaati hain.
+  // Files downloaded from a folder are grouped by that folder's name
+  // (so it shows the same structure it had in Drive); files that were
+  // downloaded directly (without a folder) are counted as standalone.
   var groups = {};
   var groupOrder = [];
   var standalone = [];
@@ -1385,10 +1384,10 @@ function renderDownloadsList() {
     }
   });
 
-  // Jab tak folder ki saari files download nahi ho jaatin, wo neeche
-  // list-style progress rows me dikhta hai. Poori folder complete hote hi
-  // wahi ab ek normal folder card ban jaata hai (bilkul home page jaisa -
-  // 📁 icon + naam), tap karne par andar ki files poster-grid me khulti hain.
+  // Until all of a folder's files have downloaded, it shows below as
+  // list-style progress rows. Once the whole folder is complete, it
+  // becomes a normal folder card (just like on the home page - a 📁 icon
+  // + name); tapping it opens the files inside in a poster-grid.
   var completeCardsHtml = "";
   var inProgressHtml = "";
 
@@ -1434,9 +1433,9 @@ function attachFolderGroupDeleteHandlers(container) {
   });
 }
 
-// Sirf abhi download ho rahe (ya fail hue) folder ke liye list-style
-// progress rows - complete ho chuki folders yahan nahi aatin, wo upar
-// grid me folder-card ban jaati hain.
+// List-style progress rows only for folders that are currently
+// downloading (or failed) - completed folders don't show up here, they
+// become a folder-card in the grid above.
 function renderDownloadFolderGroupHtml(folderName, items, completedCount) {
   var html = '<div class="download-folder-group">'
     + '<div class="download-folder-header">'
@@ -1445,7 +1444,7 @@ function renderDownloadFolderGroupHtml(folderName, items, completedCount) {
     + '<div class="d-name">' + escapeHtml(folderName) + '</div>'
     + '<div class="d-sub">' + completedCount + ' / ' + items.length + ' files complete</div>'
     + '</div>'
-    + '<button class="d-btn remove" data-remove-folder="' + escapeHtml(folderName) + '" title="Pura folder delete karein">'
+    + '<button class="d-btn remove" data-remove-folder="' + escapeHtml(folderName) + '" title="Delete entire folder">'
     + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>'
     + '</button>'
     + '</div>'
@@ -1455,9 +1454,9 @@ function renderDownloadFolderGroupHtml(folderName, items, completedCount) {
   return html;
 }
 
-// Poori tarah download ho chuki folder ek normal folder-card ban jaati hai -
-// bilkul home page jaisi (poster/📁 icon + naam). Poster bhi wahi TMDB
-// lookup se aata hai jo normal browsing me folders ke liye hota hai.
+// A fully downloaded folder becomes a normal folder-card - just like on
+// the home page (poster/📁 icon + name). The poster also comes from the
+// same TMDB lookup used for folders during normal browsing.
 function buildDownloadFolderCardHtml(folderName, items) {
   posterUidSeq++;
   var uid = "dlfolder_u" + posterUidSeq;
@@ -1465,7 +1464,7 @@ function buildDownloadFolderCardHtml(folderName, items) {
   var html = '<div class="grid-card folder-card download-complete-folder-card" '
     + 'data-folder-name="' + escapeHtml(folderName) + '" tabindex="0">';
   html += '<div class="no-poster" id="' + uid + '" data-poster-query="' + escapeHtml(folderName) + '"><div class="gi">\uD83D\uDCC1</div></div>';
-  html += '<button class="grid-remove-btn" data-remove-folder="' + escapeHtml(folderName) + '" title="Pura folder delete karein">'
+  html += '<button class="grid-remove-btn" data-remove-folder="' + escapeHtml(folderName) + '" title="Delete entire folder">'
     + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg></button>';
   html += '<div class="grid-name">' + escapeHtml(folderName) + '</div>';
   html += '</div>';
@@ -1490,10 +1489,10 @@ function attachDownloadFolderCardHandlers(container) {
   });
 }
 
-// Downloads tab se ek downloaded folder ke andar "ghuso" - agar us folder
-// ke andar subfolders bhi thi, to wahi nested structure (folder -> subfolder
-// -> file) yahan bhi milti hai, Drive browsing jaisi hi.
-var currentDownloadSubPath = []; // abhi kis subfolder ke andar hain (naamon ka chain)
+// Entering a downloaded folder from the Downloads tab - if that folder
+// had subfolders inside it, the same nested structure (folder -> subfolder
+// -> file) is available here too, just like Drive browsing.
+var currentDownloadSubPath = []; // which subfolder we're currently inside (chain of names)
 
 function enterDownloadFolder(folderName) {
   closeSearch();
@@ -1512,9 +1511,9 @@ function enterDownloadSubfolder(name) {
   renderDownloadFolderGrid(currentDownloadFolderName, currentDownloadSubPath);
 }
 
-// Ek baar upar jaana - subfolder ke andar the to ek level upar, warna
-// seedha Downloads tab par. handleBackPress() aur header ka back-chevron
-// (goBackFolder) dono isi ko use karte hain.
+// Go up one level - if inside a subfolder, go up a level, otherwise
+// go straight to the Downloads tab. Both handleBackPress() and the
+// header's back-chevron (goBackFolder) use this.
 function exitDownloadFolderLevel() {
   if (currentDownloadSubPath.length > 0) {
     currentDownloadSubPath.pop();
@@ -1524,9 +1523,10 @@ function exitDownloadFolderLevel() {
   }
 }
 
-// Diye gaye subPath (folder-chain) ke exact us level par kya-kya hai -
-// us level ki seedhi files, aur us level ke andar ki agli subfolders
-// (unke sabhi descendant items ke saath, taaki progress/completion pata chal sake).
+// What's at the exact level of the given subPath (folder-chain) -
+// the direct files at that level, and the next subfolders inside that
+// level (along with all their descendant items, so progress/completion
+// can be figured out).
 function getDownloadFolderLevel(folderName, subPath) {
   var allItems = loadDownloads().filter(function (i) { return i.folderName === folderName; });
   var files = [];
@@ -1536,7 +1536,7 @@ function getDownloadFolderLevel(folderName, subPath) {
   allItems.forEach(function (item) {
     var itemPath = item.subPath || [];
     for (var i = 0; i < subPath.length; i++) {
-      if (itemPath[i] !== subPath[i]) return; // is subPath ke andar nahi aata
+      if (itemPath[i] !== subPath[i]) return; // doesn't fall under this subPath
     }
     if (itemPath.length === subPath.length) {
       files.push(item);
@@ -1574,8 +1574,8 @@ function renderDownloadFolderGrid(folderName, subPath) {
   }
 
   if (level.subfolders.length === 0 && level.files.length === 0) {
-    showStateScreen(contentEl, "\uD83D\uDCED", "Khaali",
-      "Is folder ki saari files delete ho chuki hain.");
+    showStateScreen(contentEl, "\uD83D\uDCED", "Empty",
+      "All files in this folder have been deleted.");
     return;
   }
 
@@ -1588,9 +1588,9 @@ function renderDownloadFolderGrid(folderName, subPath) {
   lazyLoadPostersIn(contentEl);
 }
 
-// Downloaded folder ke andar ki subfolder ke liye card - poster/📁 icon +
-// naam, aur agar us subfolder ke andar sab kuch download nahi hui to ek
-// "x/y" badge bhi (kitni files complete hain).
+// Card for a subfolder inside a downloaded folder - poster/📁 icon +
+// name, and if not everything inside that subfolder has downloaded yet,
+// an "x/y" badge too (how many files are complete).
 function buildDownloadSubfolderCardHtml(name, items) {
   posterUidSeq++;
   var uid = "dlsubfolder_u" + posterUidSeq;
@@ -1616,11 +1616,11 @@ function attachDownloadSubfolderCardHandlers(container) {
   });
 }
 
-// Agar user abhi kisi downloaded folder/subfolder ke andar hai, delete ke
-// baad usi level ko taaza data ke saath refresh kar do. Agar wo level ab
-// khaali ho chuka hai to ek-ek level upar jaate hain jab tak kuch mile ya
-// root tak pahunch jaayein; poora top-folder hi khaali ho gaya ho to
-// Downloads tab par wapas bhej dete hain.
+// If the user is currently inside a downloaded folder/subfolder, refresh
+// that same level with fresh data after a delete. If that level is now
+// empty, go up one level at a time until something is found or the root
+// is reached; if the entire top-folder is now empty, send them back to
+// the Downloads tab.
 function refreshDownloadFolderViewIfOpen() {
   if (viewMode !== "downloadFolder" || !currentDownloadFolderName) return;
   var anyLeftInFolder = loadDownloads().some(function (i) { return i.folderName === currentDownloadFolderName; });
@@ -1636,9 +1636,9 @@ function refreshDownloadFolderViewIfOpen() {
   renderDownloadFolderGrid(currentDownloadFolderName, currentDownloadSubPath);
 }
 
-// Completed download ke liye normal grid-card jaisa hi card (poster + naam),
-// bas tap karne par seedha local file play hoti hai aur ek chhota remove
-// button diya hota hai delete karne ke liye.
+// For a completed download, a card just like a normal grid-card
+// (poster + name), except tapping it plays the local file directly, and
+// there's a small remove button for deleting it.
 function buildDownloadCardHtml(item) {
   posterUidSeq++;
   var uid = "dlposter_u" + posterUidSeq;
@@ -1686,11 +1686,11 @@ function renderDownloadRowHtml(item) {
   var subLine;
   if (item.status === "downloading") {
     subLine = pct + "%" + (sizeLine ? " \u00B7 " + sizeLine : "")
-      + (item.speed > 0 ? " \u00B7 " + formatBytes(item.speed) + "/s" : " \u00B7 Shuru ho raha hai...");
+      + (item.speed > 0 ? " \u00B7 " + formatBytes(item.speed) + "/s" : " \u00B7 Starting...");
   } else if (item.status === "completed") {
     subLine = "Download complete" + (item.total > 0 ? " \u00B7 " + formatBytes(item.total) : "");
   } else {
-    subLine = "\u26A0\uFE0F " + escapeHtml(item.errorMsg || "Download fail ho gaya");
+    subLine = "\u26A0\uFE0F " + escapeHtml(item.errorMsg || "Download failed");
   }
 
   var html = '<div class="download-row" data-id="' + item.id + '">'
@@ -1766,4 +1766,4 @@ function escapeHtml(str) {
   var div = document.createElement("div");
   div.innerText = str == null ? "" : str;
   return div.innerHTML;
-    }
+}
