@@ -217,7 +217,7 @@
   .source-btn.active { border-color: var(--blue); color: var(--blue); background: rgba(0, 229, 255, 0.1); }
 
   .search-results-grid {
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px;
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 12px;
     margin-top: 12px; max-height: 320px; overflow-y: auto;
   }
   .poster-card {
@@ -225,7 +225,7 @@
     border: 2px solid transparent; transition: all 0.2s ease;
   }
   .poster-card:hover { transform: translateY(-4px); border-color: var(--blue); }
-  .poster-card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; display: block; }
+  .poster-card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; display: block; background: #12121a; }
   .poster-card .title { font-size: 11px; padding: 8px; text-align: center; color: #ddd; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
   .poster-preview-pill {
@@ -384,7 +384,7 @@
           </div>
 
           <div id="modeTmdbContainer" style="display:none;">
-            <input type="text" id="tmdbSearchInput" placeholder="Search TMDB (e.g. Stranger Things)...">
+            <input type="text" id="tmdbSearchInput" placeholder="Search TMDB (e.g. Stranger Things, Animal)...">
             <div id="tmdbResults" class="search-results-grid"></div>
           </div>
 
@@ -510,7 +510,7 @@
   const LOCKED_ROOT_FOLDER_ID = "17s88x00QQXAnTQtFWasBIOcgRqziTEnQ";
   const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.readonly";
   const TMDB_API_KEY = "16b0f944d64a43298cf3ce5fc5852ffb";
-  const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w342";
+  const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w500";
 
   firebase.initializeApp(firebaseConfig);
   const auth = firebase.auth();
@@ -614,7 +614,7 @@
     keys.forEach(key => {
       var entry = allPosters[key];
       html += `<div class="fm-card">
-        <div class="fm-thumb">${entry.url ? `<img src="${entry.url}">` : '<div class="ph">🎬</div>'}</div>
+        <div class="fm-thumb">${entry.url ? `<img src="${entry.url}" onerror="this.src='https://via.placeholder.com/300x450?text=Poster+Error'">` : '<div class="ph">🎬</div>'}</div>
         <div class="fm-info"><div class="fm-name">${entry.name || key}</div>
         <div class="fm-actions">
           <button onclick="openPosterModal('${entry.name.replace(/'/g, "\\'")}', '${key}')">Edit</button>
@@ -637,7 +637,7 @@
   }
 
   function updatePreview(url) {
-    document.getElementById("previewBox").innerHTML = url ? `<img src="${url}">` : "No image";
+    document.getElementById("previewBox").innerHTML = url ? `<img src="${url}" onerror="this.src='https://via.placeholder.com/300x450?text=No+Preview'">` : "No image";
   }
 
   // TMDB AUTO-FETCH IN MODAL
@@ -656,7 +656,7 @@
       }
       document.getElementById("tmdbResultsGrid").innerHTML = results.map(r => `
         <div class="tmdb-result-card" onclick="selectModalTmdb('${r.posterUrl}')">
-          <div class="tmdb-result-thumb"><img src="${r.posterUrl}"></div>
+          <div class="tmdb-result-thumb"><img src="${r.posterUrl}" onerror="this.src='https://via.placeholder.com/150x225?text=No+Image'"></div>
           <div class="tmdb-result-label">${r.title} (${r.type})</div>
         </div>
       `).join("");
@@ -728,7 +728,7 @@
       }).catch(() => {});
   });
 
-  // TMDB Auto Search (FIXED)
+  // TMDB Auto Search Fixed
   document.getElementById("tmdbSearchInput").addEventListener("input", function() {
     var q = this.value.trim();
     clearTimeout(pushSearchTimer);
@@ -751,10 +751,10 @@
       fetch(movieUrl).then(r => r.json()).catch(() => ({ results: [] })),
       fetch(tvUrl).then(r => r.json()).catch(() => ({ results: [] }))
     ]).then(res => {
-      var movies = (res[0].results || []).slice(0, 6).map(m => ({
+      var movies = (res[0].results || []).slice(0, 8).map(m => ({
         type: "Movie", title: m.title, posterUrl: m.poster_path ? TMDB_IMAGE_BASE + m.poster_path : null
       }));
-      var tvs = (res[1].results || []).slice(0, 6).map(t => ({
+      var tvs = (res[1].results || []).slice(0, 8).map(t => ({
         type: "TV", title: t.name, posterUrl: t.poster_path ? TMDB_IMAGE_BASE + t.poster_path : null
       }));
       var combined = movies.concat(tvs).filter(i => i.posterUrl);
@@ -774,7 +774,7 @@
     }
     container.innerHTML = items.map(item => `
       <div class="poster-card" onclick="selectPushPoster('${item.poster}', '${item.title.replace(/'/g, "")}')">
-        <img src="${item.poster}">
+        <img src="${item.poster}" onerror="this.src='https://via.placeholder.com/300x450?text=No+Poster'">
         <div class="title">${item.title}</div>
       </div>
     `).join("");
