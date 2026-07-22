@@ -712,7 +712,7 @@ service firebase.storage {
 
 <script>
   // ============================================================
-  // CONFIG — Firebase + Google Drive OAuth
+  // CONFIG — Firebase (already filled in) + Google Drive OAuth
   // ============================================================
   const firebaseConfig = {
     apiKey: "AIzaSyATfDfJNk0lPVpcsZk7yj2p_DSdK9sQXvo",
@@ -741,7 +741,7 @@ service firebase.storage {
     "yify", "yts", "rarbg", "galaxytv", "psa", "org"
   ];
   var tmdbPosterCache = {}; 
-  var currentFolderFiles = []; 
+  var currentFolderFiles = []; // Track files in current folder for Select All toggle
 
   function tmdbParseFilename(rawName) {
     var name = (rawName || "").replace(/\.(mkv|mp4|avi|mov|wmv|flv|webm|m4v|ts|3gp)$/i, "");
@@ -1192,13 +1192,16 @@ service firebase.storage {
   selectAllBtn.addEventListener("click", function () {
     if (currentFolderFiles.length === 0) return;
     
+    // Check if all items in current folder are already selected
     var allSelected = currentFolderFiles.every(function(f) { return !!selectedItems[f.id]; });
     
     if (allSelected) {
+      // Deselect all items of this folder
       currentFolderFiles.forEach(function(f) {
         delete selectedItems[f.id];
       });
     } else {
+      // Select all items of this folder
       currentFolderFiles.forEach(function(f) {
         selectedItems[f.id] = f.name;
       });
