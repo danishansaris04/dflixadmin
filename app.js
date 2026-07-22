@@ -124,6 +124,15 @@ var navDownloads = document.getElementById("navDownloads");
 var downloadsViewEl = document.getElementById("downloadsView");
 var downloadsListEl = document.getElementById("downloadsList");
 
+var notifOverlay = document.getElementById("notifOverlay");
+var notifListEl = document.getElementById("notifList");
+var bellBadgeEl = document.getElementById("bellBadge");
+
+var requestOverlay = document.getElementById("requestOverlay");
+var requestNameInput = document.getElementById("requestNameInput");
+var requestNoteInput = document.getElementById("requestNoteInput");
+var btnSendRequest = document.getElementById("btnSendRequest");
+
 // ==========================================================================
 // TV REMOTE NAVIGATION (bottom nav bar)
 // On the Android side, D-pad key events get sent into the WebView as
@@ -149,7 +158,9 @@ function isTypingContext() {
 function isOverlayOpen() {
   return searchOverlay.classList.contains("active")
     || confirmOverlay.classList.contains("active")
-    || actionSheetOverlay.classList.contains("active");
+    || actionSheetOverlay.classList.contains("active")
+    || notifOverlay.classList.contains("active")
+    || requestOverlay.classList.contains("active");
 }
 
 function setTvNavFocus(index) {
@@ -222,11 +233,15 @@ window.addEventListener("load", function () {
   checkLogin();
   loadCustomPosters();
   initTvNav();
+  refreshBellBadge();
 });
 
 document.addEventListener("visibilitychange", function () {
   if (!document.hidden && loginScreen && !loginScreen.classList.contains("hidden")) {
     checkLogin();
+  }
+  if (!document.hidden) {
+    refreshBellBadge();
   }
 });
 
@@ -506,6 +521,175 @@ function comingSoon(label) {
   showToast(label + " is coming soon!");
 }
 
+// ==========================================================================
+// NOTIFICATIONS (real-time, sent from the admin panel via Firebase ->
+// FirebaseNotifyListener.java on the Android side). Two bridge calls are
+// used: Android.getNotifications() (local history) and
+// Android.markNotificationsRead() / Android.clearNotifications().
+// A live one also arrives anytime via window.onPushNotification(...),
+// called directly from FirebaseNotifyListener while the app is open.
+// ==========================================================================
+
+function refreshBellBadge() {
+  var count = 0;
+  try {
+    var list = JSON.parse(Android.getNotifications() || "[]");
+    list.forEach(function (n) { if (!n.read) count++; });
+  } catch (e) { /* Android bridge not ready yet, or not on device */ }
+
+  if (count > 0) {
+    bellBadgeEl.textContent = count > 9 ? "9+" : String(count);
+    bellBadgeEl.classList.remove("hidden");
+  } else {
+    bellBadgeEl.classList.add("hidden");
+  }
+}
+
+function notifTimeAgo(ts) {
+  var diffSec = Math.max(0, Math.floor((Date.now() - ts) / 1000));
+  if (diffSec < 60) return "Just now";
+  var diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return diffMin + "m ago";
+  var diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return diffHr + "h ago";
+  var diffDay = Math.floor(diffHr / 24);
+  if (diffDay < 7) return diffDay + "d ago";
+  return new Date(ts).toLocaleDateString();
+}
+
+function renderNotifications() {
+  var list = [];
+  try {
+    list = JSON.parse(Android.getNotifications() || "[]");
+  } catch (e) { list = []; }
+
+  if (list.length === 0) {
+    notifListEl.innerHTML = '<div class="notif-empty"><div class="emoji">🔔</div>'
+      + '<div>No notifications yet</div></div>';
+    return;
+  }
+
+  var html = "";
+  list.forEach(function (n) {
+    var unreadClass = n.read ? "" : " unread";
+    var iconHtml;
+    if (n.poster) {
+      iconHtml = '<div class="notif-icon has-poster"><img src="' + escapeHtml(n.poster) + '" alt=""></div>';
+    } else {
+      iconHtml = '<div class="notif-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>';
+    }
+    html += '<div class="notif-item' + unreadClass + '">'
+      + iconHtml
+      + '<div class="notif-body-text">'
+      + '<div class="notif-item-title">' + escapeHtml(n.title || "D-FLIX") + '</div>'
+      + '<div class="notif-item-msg">' + escapeHtml(n.body || "") + '</div>'
+      + '<div class="notif-item-time">' + notifTimeAgo(n.ts) + '</div>'
+      + '</div></div>';
+  });
+  notifListEl.innerHTML = html;
+}
+
+function escapeHtml(str) {
+  var div = document.createElement("div");
+  div.textContent = str == null ? "" : String(str);
+  return div.innerHTML;
+}
+
+function openNotifications() {
+  renderNotifications();
+  notifOverlay.classList.add("active");
+  try { Android.markNotificationsRead(); } catch (e) { }
+  refreshBellBadge();
+}
+
+function closeNotifications() {
+  notifOverlay.classList.remove("active");
+}
+
+function clearAllNotifications() {
+  try { Android.clearNotifications(); } catch (e) { }
+  renderNotifications();
+  refreshBellBadge();
+}
+
+/** Called directly from FirebaseNotifyListener.java (MainActivity.pushToWeb)
+ *  whenever a new notification arrives while the app is open. */
+function onPushNotification(jsonStr) {
+  try {
+    var n = JSON.parse(jsonStr);
+    showToast((n.title || "D-FLIX") + ": " + (n.body || ""));
+  } catch (e) { }
+  refreshBellBadge();
+  if (notifOverlay.classList.contains("active")) {
+    renderNotifications();
+    try { Android.markNotificationsRead(); } catch (e2) { }
+  }
+}
+
+/** Called directly from FirebaseNotifyListener.java (MainActivity.removeFromWeb)
+ *  whenever a notification is deleted from the admin panel. */
+function onNotificationRemoved(id) {
+  refreshBellBadge();
+  if (notifOverlay.classList.contains("active")) {
+    renderNotifications();
+  }
+}
+
+// ==========================================================================
+// MOVIE / SERIES REQUEST (Profile tab). Saved into the same Firebase
+// Realtime Database already used for posters/notifications, under
+// "/requests/{pushId}" - the standalone admin_requests.html panel reads
+// and manages this list.
+// ==========================================================================
+
+function openRequestPanel() {
+  requestOverlay.classList.add("active");
+  setTimeout(function () { try { requestNameInput.focus(); } catch (e) { } }, 200);
+}
+
+function closeRequestPanel() {
+  requestOverlay.classList.remove("active");
+}
+
+function sendMovieRequest() {
+  var name = (requestNameInput.value || "").trim();
+  var note = (requestNoteInput.value || "").trim();
+
+  if (!name) {
+    showToast("Please enter a movie or series name");
+    try { requestNameInput.focus(); } catch (e) { }
+    return;
+  }
+
+  btnSendRequest.disabled = true;
+  btnSendRequest.textContent = "Sending...";
+
+  var payload = { name: name, note: note, ts: Date.now() };
+
+  function resetSendBtn() {
+    btnSendRequest.disabled = false;
+    btnSendRequest.textContent = "Send Request";
+  }
+
+  fetch(FIREBASE_DB_URL + "/requests.json", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  })
+    .then(function (res) { return res.ok ? res.json() : Promise.reject(new Error("Request failed")); })
+    .then(function () {
+      showToast("Request sent! We'll try to add it soon.");
+      requestNameInput.value = "";
+      requestNoteInput.value = "";
+      closeRequestPanel();
+      resetSendBtn();
+    })
+    .catch(function () {
+      showToast("Couldn't send request - check your internet connection.");
+      resetSendBtn();
+    });
+}
+
 function setActiveNav(el) {
   var items = document.querySelectorAll(".nav-item");
   items.forEach(function (n) { n.classList.remove("active"); });
@@ -524,6 +708,14 @@ function handleBackPress() {
   }
   if (actionSheetOverlay.classList.contains("active")) {
     closeActionSheet();
+    return true;
+  }
+  if (notifOverlay.classList.contains("active")) {
+    closeNotifications();
+    return true;
+  }
+  if (requestOverlay.classList.contains("active")) {
+    closeRequestPanel();
     return true;
   }
   if (viewMode === "downloads" || viewMode === "movies" || viewMode === "webseries") {
@@ -1864,4 +2056,4 @@ function escapeHtml(str) {
   var div = document.createElement("div");
   div.innerText = str == null ? "" : str;
   return div.innerHTML;
-                                    }
+                              }
