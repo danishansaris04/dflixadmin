@@ -216,13 +216,10 @@
   }
   .source-btn.active { border-color: var(--blue); color: var(--blue); background: rgba(0, 229, 255, 0.1); }
 
-  /* Search Input & Button Flex Box */
-  .search-input-box {
-    display: flex; gap: 8px; width: 100%;
-  }
+  .search-input-box { display: flex; gap: 8px; width: 100%; }
 
   .search-results-grid {
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 12px;
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(105px, 1fr)); gap: 12px;
     margin-top: 12px; max-height: 320px; overflow-y: auto;
   }
   .poster-card {
@@ -308,6 +305,7 @@
     </div>
     <div style="display:flex; gap:8px;">
       <button class="btn btn-ghost" id="setupHelpBtn">⚙️ Setup Help</button>
+      <button class="btn btn-ghost hidden" id="disconnectDriveBtn">Disconnect Drive</button>
       <button class="btn btn-ghost" id="logoutBtn">Logout</button>
     </div>
   </div>
@@ -578,10 +576,117 @@
     attachPosterListener();
     loadPushHistory();
     loadRequests();
+    initDriveOAuth();
+  }
+
+  // ================= GOOGLE DRIVE OAUTH CLIENT =================
+  var driveAccessToken = null;
+  var tokenClient = null;
+  var driveFolderStack = [{ id: LOCKED_ROOT_FOLDER_ID, name: "My Drive" }];
+
+  function initDriveOAuth() {
+    var tryInit = setInterval(() => {
+      if (window.google && google.accounts && google.accounts.oauth2) {
+        clearInterval(tryInit);
+        tokenClient = google.accounts.oauth2.initTokenClient({
+          client_id: GOOGLE_CLIENT_ID,
+          scope: DRIVE_SCOPE,
+          callback: (resp) => {
+            if (resp.error) {
+              showToast("Drive Connect Failed: " + resp.error, false);
+              return;
+            }
+            driveAccessToken = resp.access_token;
+            onDriveConnected();
+          }
+        });
+      }
+    }, 300);
+  }
+
+  document.getElementById("connectDriveBtn").addEventListener("click", () => {
+    if (!tokenClient) { showToast("Google SDK loading... try again", false); return; }
+    tokenClient.requestAccessToken();
+  });
+
+  document.getElementById("disconnectDriveBtn").addEventListener("click", () => {
+    driveAccessToken = null;
+    driveFolderStack = [{ id: LOCKED_ROOT_FOLDER_ID, name: "My Drive" }];
+    document.getElementById("driveConnectState").classList.remove("hidden");
+    document.getElementById("driveBrowseState").classList.add("hidden");
+    document.getElementById("disconnectDriveBtn").classList.add("hidden");
+  });
+
+  function onDriveConnected() {
+    document.getElementById("driveConnectState").classList.add("hidden");
+    document.getElementById("driveBrowseState").classList.remove("hidden");
+    document.getElementById("disconnectDriveBtn").classList.remove("hidden");
+    renderBreadcrumb();
+    loadDriveFolder(driveFolderStack[driveFolderStack.length - 1].id);
+  }
+
+  function driveListFiles(folderId, callback) {
+    var q = encodeURIComponent("'" + folderId + "' in parents and trashed = false");
+    var fields = encodeURIComponent("files(id,name,mimeType)");
+    fetch("https://www.googleapis.com/drive/v3/files?q=" + q + "&fields=" + fields + "&pageSize=200&orderBy=folder,name", {
+      headers: { Authorization: "Bearer " + driveAccessToken }
+    })
+    .then(res => res.json())
+    .then(data => callback(data.files || []))
+    .catch(() => callback(null));
+  }
+
+  function loadDriveFolder(folderId) {
+    const grid = document.getElementById("driveBrowseGrid");
+    grid.innerHTML = '<div class="empty-state">Loading Drive Items...</div>';
+    driveListFiles(folderId, files => {
+      if (!files) { grid.innerHTML = '<div class="empty-state">Error loading Drive folder.</div>'; return; }
+      renderDriveGrid(files);
+    });
+  }
+
+  function renderDriveGrid(files) {
+    document.getElementById("driveCountPill").textContent = files.length + " items";
+    const grid = document.getElementById("driveBrowseGrid");
+    if(files.length === 0) { grid.innerHTML = '<div class="empty-state">Folder is empty.</div>'; return; }
+
+    grid.innerHTML = '<div class="fm-grid">' + files.map(f => {
+      var isFolder = f.mimeType === "application/vnd.google-apps.folder";
+      var key = posterKeyEncode(f.name);
+      var existing = allPosters[key];
+      return `<div class="fm-card">
+        <div class="fm-thumb" onclick="${isFolder ? `openDriveFolder('${f.id}', '${f.name.replace(/'/g, "\\'")}')` : `openPosterModal('${f.name.replace(/'/g, "\\'")}')`}">
+          ${existing && existing.url ? `<img src="${existing.url}">` : `<div class="ph">${isFolder ? '📁' : '🎬'}</div>`}
+        </div>
+        <div class="fm-info">
+          <div class="fm-name">${f.name}</div>
+          <div class="fm-actions">
+            ${isFolder ? `<button onclick="openDriveFolder('${f.id}', '${f.name.replace(/'/g, "\\'")}')">Open</button>` : `<button class="poster-btn" onclick="openPosterModal('${f.name.replace(/'/g, "\\'")}')">Set Poster</button>`}
+          </div>
+        </div>
+      </div>`;
+    }).join("") + '</div>';
+  }
+
+  function openDriveFolder(id, name) {
+    driveFolderStack.push({ id: id, name: name });
+    renderBreadcrumb();
+    loadDriveFolder(id);
+  }
+
+  function renderBreadcrumb() {
+    document.getElementById("breadcrumb").innerHTML = driveFolderStack.map((f, idx) => `
+      <span class="crumb" onclick="goBreadcrumb(${idx})">${f.name}</span>
+    `).join(' <span class="crumb-sep">›</span> ');
+  }
+
+  function goBreadcrumb(idx) {
+    driveFolderStack = driveFolderStack.slice(0, idx + 1);
+    renderBreadcrumb();
+    loadDriveFolder(driveFolderStack[driveFolderStack.length - 1].id);
   }
 
   // ================= MODULE 1: POSTERS CODE & TMDB SEARCH =================
-  var tmdbPosterCache = {}; 
   var allPosters = {};
   var editingKey = null;
 
@@ -625,7 +730,7 @@
     keys.forEach(key => {
       var entry = allPosters[key];
       html += `<div class="fm-card">
-        <div class="fm-thumb">${entry.url ? `<img src="${entry.url}" onerror="this.src='https://via.placeholder.com/300x450?text=Poster+Error'">` : '<div class="ph">🎬</div>'}</div>
+        <div class="fm-thumb">${entry.url ? `<img src="${entry.url}">` : '<div class="ph">🎬</div>'}</div>
         <div class="fm-info"><div class="fm-name">${entry.name || key}</div>
         <div class="fm-actions">
           <button onclick="openPosterModal('${entry.name.replace(/'/g, "\\'")}', '${key}')">Edit</button>
@@ -648,7 +753,7 @@
   }
 
   function updatePreview(url) {
-    document.getElementById("previewBox").innerHTML = url ? `<img src="${url}" onerror="this.src='https://via.placeholder.com/300x450?text=No+Preview'">` : "No image";
+    document.getElementById("previewBox").innerHTML = url ? `<img src="${url}">` : "No image";
   }
 
   // TMDB AUTO-FETCH IN MODAL
@@ -667,7 +772,7 @@
       }
       document.getElementById("tmdbResultsGrid").innerHTML = results.map(r => `
         <div class="tmdb-result-card" onclick="selectModalTmdb('${r.posterUrl}')">
-          <div class="tmdb-result-thumb"><img src="${r.posterUrl}" onerror="this.src='https://via.placeholder.com/150x225?text=No+Image'"></div>
+          <div class="tmdb-result-thumb"><img src="${r.posterUrl}"></div>
           <div class="tmdb-result-label">${r.title} (${r.type})</div>
         </div>
       `).join("");
@@ -742,7 +847,6 @@
       });
   }
 
-  // IMDb Listeners (Type, Enter & Button Click)
   document.getElementById("imdbSearchInput").addEventListener("input", function() {
     clearTimeout(pushSearchTimer);
     pushSearchTimer = setTimeout(runImdbSearch, 400);
@@ -764,7 +868,6 @@
     });
   }
 
-  // TMDB Listeners (Type, Enter & Button Click)
   document.getElementById("tmdbSearchInput").addEventListener("input", function() {
     clearTimeout(pushSearchTimer);
     pushSearchTimer = setTimeout(runTmdbSearch, 400);
