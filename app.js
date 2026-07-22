@@ -1,16 +1,4 @@
 
-  <script>
-  atOptions = {
-    'key' : '555edb5d94e4631de5bb7b83bc1a2968',
-    'format' : 'iframe',
-    'height' : 50,
-    'width' : 320,
-    'params' : {}
-  };
-</script>
-<script src="https://www.highperformanceformat.com/555edb5d94e4631de5bb7b83bc1a2968/invoke.js"></script>
-
-
 // ==========================================================================
 // D-FLIX front-end logic
 // Talks to the native Android bridge exposed as window.Android
