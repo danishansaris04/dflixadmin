@@ -194,6 +194,7 @@
   .tmdb-result-card { cursor: pointer; border-radius: 10px; overflow: hidden; background: var(--card); border: 1px solid var(--border); }
   .tmdb-result-thumb { width: 100%; aspect-ratio: 2/3; background: #0a0a10; display: flex; align-items: center; justify-content: center; }
   .tmdb-result-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .tmdb-result-label { font-size: 10.5px; padding: 5px 6px 6px; line-height: 1.3; }
 
   /* ==================== SECTION 2: PUSH NOTIFICATION STYLES ==================== */
   .glass-card {
@@ -568,14 +569,10 @@
     loadRequests();
   }
 
-  // ================= MODULE 1: POSTERS CODE =================
+  // ================= MODULE 1: POSTERS CODE & TMDB SEARCH =================
   var tmdbPosterCache = {}; 
   var allPosters = {};
-  var currentFolderFiles = [];
   var editingKey = null;
-  var bulkModeItems = null; 
-  var selectMode = false;
-  var selectedItems = {}; 
 
   document.querySelectorAll("#posterTabsRow .inner-tab-btn").forEach(btn => {
     btn.addEventListener("click", () => {
@@ -620,7 +617,7 @@
         <div class="fm-thumb">${entry.url ? `<img src="${entry.url}">` : '<div class="ph">🎬</div>'}</div>
         <div class="fm-info"><div class="fm-name">${entry.name || key}</div>
         <div class="fm-actions">
-          <button onclick="openPosterModal('${entry.name}', '${key}')">Edit</button>
+          <button onclick="openPosterModal('${entry.name.replace(/'/g, "\\'")}', '${key}')">Edit</button>
           <button onclick="deletePoster('${key}')" style="color:var(--danger)">Delete</button>
         </div></div></div>`;
     });
@@ -633,12 +630,50 @@
     var existing = allPosters[editingKey];
     document.getElementById("posterName").value = name;
     document.getElementById("posterUrl").value = existing ? existing.url : "";
+    document.getElementById("tmdbResultsPanel").classList.add("hidden");
+    document.getElementById("modalFormFields").classList.remove("hidden");
     updatePreview(document.getElementById("posterUrl").value);
     document.getElementById("modalOverlay").classList.add("active");
   }
 
   function updatePreview(url) {
     document.getElementById("previewBox").innerHTML = url ? `<img src="${url}">` : "No image";
+  }
+
+  // TMDB AUTO-FETCH IN MODAL
+  document.getElementById("autoFetchBtn").addEventListener("click", () => {
+    var query = document.getElementById("posterName").value.trim();
+    if(!query) { showToast("Pehle naam daalein", false); return; }
+
+    document.getElementById("modalFormFields").classList.add("hidden");
+    document.getElementById("tmdbResultsPanel").classList.remove("hidden");
+    document.getElementById("tmdbResultsGrid").innerHTML = '<div class="empty-state">Searching TMDB...</div>';
+
+    fetchTMDBMulti(query, results => {
+      if(!results || results.length === 0) {
+        document.getElementById("tmdbResultsGrid").innerHTML = '<div class="empty-state">Kuch nahi mila.</div>';
+        return;
+      }
+      document.getElementById("tmdbResultsGrid").innerHTML = results.map(r => `
+        <div class="tmdb-result-card" onclick="selectModalTmdb('${r.posterUrl}')">
+          <div class="tmdb-result-thumb"><img src="${r.posterUrl}"></div>
+          <div class="tmdb-result-label">${r.title} (${r.type})</div>
+        </div>
+      `).join("");
+    });
+  });
+
+  document.getElementById("tmdbResultsBackBtn").addEventListener("click", () => {
+    document.getElementById("tmdbResultsPanel").classList.add("hidden");
+    document.getElementById("modalFormFields").classList.remove("hidden");
+  });
+
+  function selectModalTmdb(url) {
+    document.getElementById("posterUrl").value = url;
+    updatePreview(url);
+    document.getElementById("tmdbResultsPanel").classList.add("hidden");
+    document.getElementById("modalFormFields").classList.remove("hidden");
+    showToast("Poster Select ho gaya! Ab Save dabayein", true);
   }
 
   document.getElementById("modalCancelBtn").addEventListener("click", () => {
@@ -664,8 +699,9 @@
     }
   }
 
-  // ================= MODULE 2: PUSH NOTIFICATION CODE =================
+  // ================= MODULE 2: PUSH NOTIFICATION & TMDB FIXED =================
   var pushSelectedPoster = null;
+  var pushSearchTimer = null;
 
   function setPosterMode(mode) {
     document.getElementById("btnModeImdb").classList.toggle("active", mode === 'imdb');
@@ -677,6 +713,7 @@
     document.getElementById("modeUrlContainer").style.display = mode === 'url' ? 'flex' : 'none';
   }
 
+  // IMDb Auto Search
   document.getElementById("imdbSearchInput").addEventListener("input", function() {
     var q = this.value.trim();
     if (q.length < 2) return;
@@ -688,10 +725,53 @@
           title: i.l, poster: i.i.imageUrl
         }));
         renderPushGrid(document.getElementById("imdbResults"), posters);
+      }).catch(() => {});
+  });
+
+  // TMDB Auto Search (FIXED)
+  document.getElementById("tmdbSearchInput").addEventListener("input", function() {
+    var q = this.value.trim();
+    clearTimeout(pushSearchTimer);
+    if (q.length < 2) { document.getElementById("tmdbResults").innerHTML = ""; return; }
+    
+    pushSearchTimer = setTimeout(() => {
+      fetchTMDBMulti(q, results => {
+        var items = results.map(r => ({ title: r.title, poster: r.posterUrl }));
+        renderPushGrid(document.getElementById("tmdbResults"), items);
       });
+    }, 300);
+  });
+
+  // Shared Multi Search function for TMDB
+  function fetchTMDBMulti(query, callback) {
+    var movieUrl = `https://api.themoviedb.org/3/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}`;
+    var tvUrl = `https://api.themoviedb.org/3/search/tv?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}`;
+
+    Promise.all([
+      fetch(movieUrl).then(r => r.json()).catch(() => ({ results: [] })),
+      fetch(tvUrl).then(r => r.json()).catch(() => ({ results: [] }))
+    ]).then(res => {
+      var movies = (res[0].results || []).slice(0, 6).map(m => ({
+        type: "Movie", title: m.title, posterUrl: m.poster_path ? TMDB_IMAGE_BASE + m.poster_path : null
+      }));
+      var tvs = (res[1].results || []).slice(0, 6).map(t => ({
+        type: "TV", title: t.name, posterUrl: t.poster_path ? TMDB_IMAGE_BASE + t.poster_path : null
+      }));
+      var combined = movies.concat(tvs).filter(i => i.posterUrl);
+      callback(combined);
+    }).catch(() => callback([]));
+  }
+
+  document.getElementById("btnAttachUrl").addEventListener("click", () => {
+    var url = document.getElementById("directUrlInput").value.trim();
+    if(url) selectPushPoster(url, "Custom Image");
   });
 
   function renderPushGrid(container, items) {
+    if(items.length === 0) {
+      container.innerHTML = '<div style="grid-column:1/-1; font-size:12px; color:var(--muted);">Koi poster nahi mila.</div>';
+      return;
+    }
     container.innerHTML = items.map(item => `
       <div class="poster-card" onclick="selectPushPoster('${item.poster}', '${item.title.replace(/'/g, "")}')">
         <img src="${item.poster}">
@@ -705,6 +785,9 @@
     document.getElementById("selectedPosterImg").src = url;
     document.getElementById("selectedPosterTitle").textContent = title;
     document.getElementById("selectedPosterBox").style.display = "flex";
+    if(!document.getElementById("pushTitleInput").value) {
+      document.getElementById("pushTitleInput").value = title;
+    }
   }
 
   document.getElementById("btnRemovePoster").addEventListener("click", () => {
