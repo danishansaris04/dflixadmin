@@ -1471,7 +1471,7 @@ service firebase.storage {
   }
 
   // ============================================================
-  // PUSH NOTIFICATION PORTAL LOGIC (EXACT UNTOUCHED)
+  // PUSH NOTIFICATION PORTAL LOGIC (FIXED)
   // ============================================================
   var LS_URL_KEY = "dflix_admin_db_url";
   var LS_SECRET_KEY = "dflix_admin_db_secret";
@@ -1524,7 +1524,7 @@ service firebase.storage {
     document.getElementById("modeUrlContainer").style.display = mode === 'url' ? 'flex' : 'none';
   }
 
-  /* IMDb Search Logic */
+  /* IMDb Search Logic (CORS Proxy Fixed) */
   imdbSearchInput.addEventListener("input", function() {
     var q = imdbSearchInput.value.trim();
     clearTimeout(searchTimer);
@@ -1537,9 +1537,10 @@ service firebase.storage {
     
     var cleanQuery = query.toLowerCase().replace(/[^a-z0-9]/g, '');
     var firstChar = cleanQuery.charAt(0) || 'a';
-    var url = "https://v3.sg.media-imdb.com/suggestion/x/" + firstChar + "/" + encodeURIComponent(cleanQuery) + ".json";
+    var imdbUrl = "https://v3.sg.media-imdb.com/suggestion/x/" + firstChar + "/" + encodeURIComponent(cleanQuery) + ".json";
+    var proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(imdbUrl);
 
-    fetch(url)
+    fetch(proxyUrl)
       .then(function(r) { return r.json(); })
       .then(function(data) {
         var items = data.d || [];
@@ -1561,7 +1562,7 @@ service firebase.storage {
       });
   }
 
-  /* TMDB Search Logic (Connected with Smart Filename Cleaner) */
+  /* TMDB Search Logic (Fix applied) */
   tmdbSearchInput.addEventListener("input", function () {
     var q = tmdbSearchInput.value.trim();
     clearTimeout(searchTimer);
@@ -1590,6 +1591,8 @@ service firebase.storage {
       tvs.forEach(function(t) { if(t.poster_path) combined.push({ title: t.name, poster: TMDB_IMAGE_BASE + t.poster_path }); });
 
       renderGridResults(tmdbResults, combined);
+    }).catch(function() {
+      tmdbResults.innerHTML = '<div style="grid-column:1/-1; font-size:12px; color:var(--text-muted)">Search failed. Try again.</div>';
     });
   }
 
@@ -1731,4 +1734,4 @@ service firebase.storage {
   }
 </script>
 </body>
-  </html>
+</html>
