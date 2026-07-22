@@ -216,6 +216,11 @@
   }
   .source-btn.active { border-color: var(--blue); color: var(--blue); background: rgba(0, 229, 255, 0.1); }
 
+  /* Search Input & Button Flex Box */
+  .search-input-box {
+    display: flex; gap: 8px; width: 100%;
+  }
+
   .search-results-grid {
     display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 12px;
     margin-top: 12px; max-height: 320px; overflow-y: auto;
@@ -379,12 +384,18 @@
           </div>
 
           <div id="modeImdbContainer">
-            <input type="text" id="imdbSearchInput" placeholder="Search IMDb (e.g. Oppenheimer, Batman)...">
+            <div class="search-input-box">
+              <input type="text" id="imdbSearchInput" placeholder="Search IMDb (e.g. Oppenheimer)...">
+              <button class="btn btn-primary" id="btnSearchImdb">🔍 Search</button>
+            </div>
             <div id="imdbResults" class="search-results-grid"></div>
           </div>
 
           <div id="modeTmdbContainer" style="display:none;">
-            <input type="text" id="tmdbSearchInput" placeholder="Search TMDB (e.g. Stranger Things, Animal)...">
+            <div class="search-input-box">
+              <input type="text" id="tmdbSearchInput" placeholder="Search TMDB (e.g. Stranger Things)...">
+              <button class="btn btn-primary" id="btnSearchTmdb">🔍 Search</button>
+            </div>
             <div id="tmdbResults" class="search-results-grid"></div>
           </div>
 
@@ -713,10 +724,11 @@
     document.getElementById("modeUrlContainer").style.display = mode === 'url' ? 'flex' : 'none';
   }
 
-  // IMDb Auto Search
-  document.getElementById("imdbSearchInput").addEventListener("input", function() {
-    var q = this.value.trim();
+  // IMDb Execution Helper
+  function runImdbSearch() {
+    var q = document.getElementById("imdbSearchInput").value.trim();
     if (q.length < 2) return;
+    document.getElementById("imdbResults").innerHTML = '<div style="grid-column:1/-1; font-size:12px; color:var(--muted);">Searching IMDb...</div>';
     var firstChar = q.charAt(0).toLowerCase();
     fetch(`https://v3.sg.media-imdb.com/suggestion/x/${firstChar}/${encodeURIComponent(q)}.json`)
       .then(r => r.json())
@@ -725,22 +737,42 @@
           title: i.l, poster: i.i.imageUrl
         }));
         renderPushGrid(document.getElementById("imdbResults"), posters);
-      }).catch(() => {});
-  });
-
-  // TMDB Auto Search Fixed
-  document.getElementById("tmdbSearchInput").addEventListener("input", function() {
-    var q = this.value.trim();
-    clearTimeout(pushSearchTimer);
-    if (q.length < 2) { document.getElementById("tmdbResults").innerHTML = ""; return; }
-    
-    pushSearchTimer = setTimeout(() => {
-      fetchTMDBMulti(q, results => {
-        var items = results.map(r => ({ title: r.title, poster: r.posterUrl }));
-        renderPushGrid(document.getElementById("tmdbResults"), items);
+      }).catch(() => {
+        document.getElementById("imdbResults").innerHTML = '<div style="grid-column:1/-1; font-size:12px; color:var(--muted);">IMDb Search failed.</div>';
       });
-    }, 300);
+  }
+
+  // IMDb Listeners (Type, Enter & Button Click)
+  document.getElementById("imdbSearchInput").addEventListener("input", function() {
+    clearTimeout(pushSearchTimer);
+    pushSearchTimer = setTimeout(runImdbSearch, 400);
   });
+  document.getElementById("imdbSearchInput").addEventListener("keypress", function(e) {
+    if (e.key === 'Enter') runImdbSearch();
+  });
+  document.getElementById("btnSearchImdb").addEventListener("click", runImdbSearch);
+
+  // TMDB Execution Helper
+  function runTmdbSearch() {
+    var q = document.getElementById("tmdbSearchInput").value.trim();
+    if (q.length < 2) { document.getElementById("tmdbResults").innerHTML = ""; return; }
+    document.getElementById("tmdbResults").innerHTML = '<div style="grid-column:1/-1; font-size:12px; color:var(--muted);">Searching TMDB...</div>';
+    
+    fetchTMDBMulti(q, results => {
+      var items = results.map(r => ({ title: r.title, poster: r.posterUrl }));
+      renderPushGrid(document.getElementById("tmdbResults"), items);
+    });
+  }
+
+  // TMDB Listeners (Type, Enter & Button Click)
+  document.getElementById("tmdbSearchInput").addEventListener("input", function() {
+    clearTimeout(pushSearchTimer);
+    pushSearchTimer = setTimeout(runTmdbSearch, 400);
+  });
+  document.getElementById("tmdbSearchInput").addEventListener("keypress", function(e) {
+    if (e.key === 'Enter') runTmdbSearch();
+  });
+  document.getElementById("btnSearchTmdb").addEventListener("click", runTmdbSearch);
 
   // Shared Multi Search function for TMDB
   function fetchTMDBMulti(query, callback) {
