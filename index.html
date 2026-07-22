@@ -24,6 +24,7 @@
     --text-muted: #8c93b0;
     --text-main: #f0f3ff;
     --success: #2ed573;
+    --glass-border: rgba(255, 255, 255, 0.08);
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -317,6 +318,88 @@
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
   .toast.good { border-color: rgba(61,220,132,0.4); }
   .toast.bad { border-color: rgba(255,77,77,0.4); }
+
+  /* ---------- Movie/Series Requests Panel Styles ---------- */
+  .req-top-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 22px; flex-wrap: wrap; gap: 10px;
+  }
+  .req-title {
+    font-size: 22px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase;
+  }
+  .req-title span { color: var(--blue); text-shadow: 0 0 10px var(--blue-glow); }
+  .req-subtitle { color: var(--muted); font-size: 13px; margin-top: 4px; }
+  .req-top-actions { display: flex; gap: 10px; align-items: center; }
+
+  .req-count-pill {
+    background: rgba(0,229,255,0.1); color: var(--blue); border: 1px solid rgba(0,229,255,0.25);
+    padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 700;
+  }
+
+  .btn-refresh {
+    background: rgba(255,255,255,0.06); border: 1px solid var(--glass-border); color: #fff;
+    padding: 8px 14px; border-radius: 10px; font-size: 13px; cursor: pointer;
+  }
+  .btn-refresh:active { transform: scale(0.97); }
+
+  .req-search-box {
+    margin-bottom: 18px; display: flex; align-items: center; gap: 8px;
+    background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border);
+    border-radius: 12px; padding: 10px 14px;
+  }
+  .req-search-box input {
+    flex: 1; background: none; border: none; outline: none; color: #fff; font-size: 14px;
+  }
+  .req-search-box input::placeholder { color: var(--muted); }
+  .req-search-box svg { width: 16px; height: 16px; color: var(--muted); flex-shrink: 0; }
+
+  .req-list { display: flex; flex-direction: column; gap: 12px; }
+
+  .req-card {
+    background: var(--card-bg); border: 1px solid var(--glass-border); border-radius: 14px;
+    padding: 16px; display: flex; justify-content: space-between; gap: 14px;
+  }
+
+  .req-main { min-width: 0; flex: 1; }
+  .req-name { font-size: 15px; font-weight: 700; color: #fff; word-break: break-word; }
+  .req-note {
+    font-size: 13px; color: var(--muted); margin-top: 5px; line-height: 1.45; word-break: break-word;
+  }
+  .req-note.empty { font-style: italic; opacity: 0.6; }
+  .req-time { font-size: 11px; color: var(--muted); margin-top: 8px; opacity: 0.75; }
+
+  .req-actions { display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
+
+  .btn-icon {
+    width: 34px; height: 34px; border-radius: 9px; border: 1px solid var(--glass-border);
+    background: rgba(255,255,255,0.04); color: var(--muted); display: flex; align-items: center;
+    justify-content: center; cursor: pointer;
+  }
+  .btn-icon svg { width: 16px; height: 16px; }
+  .btn-icon.danger { color: var(--danger); border-color: rgba(255,77,77,0.3); }
+  .btn-icon.danger:active { background: rgba(255,77,77,0.12); }
+
+  .state-screen { text-align: center; padding: 70px 20px; color: var(--muted); }
+  .state-screen .emoji { font-size: 40px; margin-bottom: 12px; }
+  .state-screen .msg { font-size: 14px; }
+
+  .confirm-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none;
+    align-items: center; justify-content: center; z-index: 900; padding: 20px;
+  }
+  .confirm-overlay.active { display: flex; }
+  .confirm-box {
+    background: #12121a; border: 1px solid var(--glass-border); border-radius: 16px;
+    padding: 20px; width: 100%; max-width: 320px;
+  }
+  .confirm-title { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+  .confirm-msg { font-size: 13px; color: var(--muted); line-height: 1.5; margin-bottom: 18px; word-break: break-word; }
+  .confirm-actions { display: flex; gap: 10px; }
+  .confirm-btn {
+    flex: 1; padding: 10px; border-radius: 9px; border: none; font-size: 13px; font-weight: 700; cursor: pointer;
+  }
+  .confirm-btn.cancel { background: rgba(255,255,255,0.08); color: #fff; }
+  .confirm-btn.danger { background: var(--danger); color: #fff; }
 </style>
 </head>
 <body>
@@ -355,6 +438,7 @@
       <button class="tab-btn active" data-tab="browse">📁 Browse Drive</button>
       <button class="tab-btn" data-tab="manage">🖼️ All Posters</button>
       <button class="tab-btn" data-tab="push">🚀 Push Notification</button>
+      <button class="tab-btn" data-tab="requests">📥 Requests</button>
     </div>
     <div style="display:flex; gap:8px;">
       <button class="btn btn-ghost" id="setupHelpBtn">⚙️ Setup help</button>
@@ -375,6 +459,10 @@
       ".write": "auth != null"
     },
     "notifications": {
+      ".read": true,
+      ".write": true
+    },
+    "requests": {
       ".read": true,
       ".write": true
     }
@@ -522,6 +610,29 @@ service firebase.storage {
       </div>
     </div>
 
+    <!-- TAB 4: MOVIE / SERIES REQUESTS -->
+    <div id="tabRequests" class="hidden">
+      <div class="req-top-bar">
+        <div>
+          <div class="req-title">D-<span>FLIX</span> Admin</div>
+          <div class="req-subtitle">Movie / Series Requests</div>
+        </div>
+        <div class="req-top-actions">
+          <span class="req-count-pill" id="reqCountPill">0</span>
+          <button class="btn-refresh" id="btnRefreshReq" onclick="loadRequests()">Refresh</button>
+        </div>
+      </div>
+
+      <div class="req-search-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" id="reqSearchInput" placeholder="Search by name..." oninput="renderRequestsList()">
+      </div>
+
+      <div id="reqListContainer">
+        <div class="state-screen"><div class="emoji">⏳</div><div class="msg">Loading requests...</div></div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -574,6 +685,18 @@ service firebase.storage {
       <button class="btn btn-ghost" id="modalCancelBtn">Cancel</button>
       <button class="btn btn-danger hidden" id="modalDeleteBtn">Remove</button>
       <button class="btn btn-primary" id="modalSaveBtn">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Request Deletion Confirm Overlay -->
+<div class="confirm-overlay" id="confirmOverlay" onclick="if(event.target===this) closeConfirm();">
+  <div class="confirm-box">
+    <div class="confirm-title">Delete this request?</div>
+    <div class="confirm-msg" id="confirmMsg"></div>
+    <div class="confirm-actions">
+      <button class="confirm-btn cancel" onclick="closeConfirm()">Cancel</button>
+      <button class="confirm-btn danger" id="confirmDeleteBtn">Delete</button>
     </div>
   </div>
 </div>
@@ -758,6 +881,7 @@ service firebase.storage {
   const tabBrowse = document.getElementById("tabBrowse");
   const tabManage = document.getElementById("tabManage");
   const tabPush = document.getElementById("tabPush");
+  const tabRequests = document.getElementById("tabRequests");
 
   const driveConnectState = document.getElementById("driveConnectState");
   const driveBrowseState = document.getElementById("driveBrowseState");
@@ -844,6 +968,7 @@ service firebase.storage {
       adminWrap.classList.remove("hidden");
       attachPosterListener();
       loadHistory();
+      loadRequests();
     } else {
       adminWrap.classList.add("hidden");
       loginWrap.classList.remove("hidden");
@@ -858,6 +983,10 @@ service firebase.storage {
       tabBrowse.classList.toggle("hidden", tab !== "browse");
       tabManage.classList.toggle("hidden", tab !== "manage");
       tabPush.classList.toggle("hidden", tab !== "push");
+      tabRequests.classList.toggle("hidden", tab !== "requests");
+      if(tab === "requests") {
+        loadRequests();
+      }
     });
   });
 
@@ -1471,7 +1600,7 @@ service firebase.storage {
   }
 
   // ============================================================
-  // PUSH NOTIFICATION PORTAL LOGIC (FIXED)
+  // PUSH NOTIFICATION PORTAL LOGIC
   // ============================================================
   var LS_URL_KEY = "dflix_admin_db_url";
   var LS_SECRET_KEY = "dflix_admin_db_secret";
@@ -1524,7 +1653,7 @@ service firebase.storage {
     document.getElementById("modeUrlContainer").style.display = mode === 'url' ? 'flex' : 'none';
   }
 
-  /* IMDb Search Logic (CORS Proxy Fixed) */
+  /* IMDb Search Logic */
   imdbSearchInput.addEventListener("input", function() {
     var q = imdbSearchInput.value.trim();
     clearTimeout(searchTimer);
@@ -1562,7 +1691,7 @@ service firebase.storage {
       });
   }
 
-  /* TMDB Search Logic (Fix applied) */
+  /* TMDB Search Logic */
   tmdbSearchInput.addEventListener("input", function () {
     var q = tmdbSearchInput.value.trim();
     clearTimeout(searchTimer);
@@ -1717,6 +1846,127 @@ service firebase.storage {
       if(el) el.remove();
     });
   }
+
+  // ============================================================
+  // MOVIE / SERIES REQUESTS PORTAL LOGIC
+  // ============================================================
+  var allRequests = [];
+  var pendingDeleteId = null;
+
+  function reqTimeAgo(ts) {
+    var diffSec = Math.max(0, Math.floor((Date.now() - ts) / 1000));
+    if (diffSec < 60) return "Just now";
+    var diffMin = Math.floor(diffSec / 60);
+    if (diffMin < 60) return diffMin + "m ago";
+    var diffHr = Math.floor(diffMin / 60);
+    if (diffHr < 24) return diffHr + "h ago";
+    var diffDay = Math.floor(diffHr / 24);
+    if (diffDay < 7) return diffDay + "d ago";
+    return new Date(ts).toLocaleDateString() + " " + new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  }
+
+  function loadRequests() {
+    var listEl = document.getElementById("reqListContainer");
+    if (!listEl) return;
+    listEl.innerHTML = '<div class="state-screen"><div class="emoji">⏳</div><div class="msg">Loading requests...</div></div>';
+
+    var url = getDbUrl() + "/requests.json";
+    if (getDbSecret()) url += "?auth=" + encodeURIComponent(getDbSecret());
+
+    fetch(url)
+      .then(function (res) { return res.ok ? res.json() : Promise.reject(new Error("Failed to load")); })
+      .then(function (data) {
+        allRequests = [];
+        if (data) {
+          Object.keys(data).forEach(function (key) {
+            var item = data[key] || {};
+            allRequests.push({
+              id: key,
+              name: item.name || "(no name)",
+              note: item.note || "",
+              ts: item.ts || 0
+            });
+          });
+        }
+        allRequests.sort(function (a, b) { return b.ts - a.ts; });
+        renderRequestsList();
+      })
+      .catch(function () {
+        listEl.innerHTML = '<div class="state-screen"><div class="emoji">⚠️</div><div class="msg">Couldn\'t load requests. Check connection or DB setup and tap Refresh.</div></div>';
+      });
+  }
+
+  function renderRequestsList() {
+    var listEl = document.getElementById("reqListContainer");
+    var searchEl = document.getElementById("reqSearchInput");
+    var query = searchEl ? searchEl.value.trim().toLowerCase() : "";
+
+    var filtered = allRequests.filter(function (r) {
+      return !query || r.name.toLowerCase().indexOf(query) !== -1 || r.note.toLowerCase().indexOf(query) !== -1;
+    });
+
+    var countEl = document.getElementById("reqCountPill");
+    if (countEl) countEl.textContent = allRequests.length;
+
+    if (filtered.length === 0) {
+      listEl.innerHTML = '<div class="state-screen"><div class="emoji">🎬</div><div class="msg">'
+        + (allRequests.length === 0 ? "No requests yet." : "No requests match your search.")
+        + '</div></div>';
+      return;
+    }
+
+    var html = '<div class="req-list">';
+    filtered.forEach(function (r) {
+      html += '<div class="req-card">'
+        + '<div class="req-main">'
+        + '<div class="req-name">' + escapeHtml(r.name) + '</div>'
+        + '<div class="req-note' + (r.note ? '' : ' empty') + '">' + (r.note ? escapeHtml(r.note) : 'No additional note') + '</div>'
+        + '<div class="req-time">' + reqTimeAgo(r.ts) + '</div>'
+        + '</div>'
+        + '<div class="req-actions">'
+        + '<button class="btn-icon danger" onclick="confirmDeleteRequest(\'' + r.id + '\')" title="Delete">'
+        + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6h16Z"/></svg>'
+        + '</button>'
+        + '</div>'
+        + '</div>';
+    });
+    html += '</div>';
+    listEl.innerHTML = html;
+  }
+
+  function confirmDeleteRequest(id) {
+    var req = allRequests.find(function (r) { return r.id === id; });
+    pendingDeleteId = id;
+    document.getElementById("confirmMsg").textContent = req
+      ? 'Delete request for "' + req.name + '"? This cannot be undone.'
+      : "Delete this request? This cannot be undone.";
+    document.getElementById("confirmOverlay").classList.add("active");
+  }
+
+  function closeConfirm() {
+    document.getElementById("confirmOverlay").classList.remove("active");
+    pendingDeleteId = null;
+  }
+
+  document.getElementById("confirmDeleteBtn").onclick = function () {
+    if (!pendingDeleteId) return;
+    var id = pendingDeleteId;
+    closeConfirm();
+
+    var url = getDbUrl() + "/requests/" + id + ".json";
+    if (getDbSecret()) url += "?auth=" + encodeURIComponent(getDbSecret());
+
+    fetch(url, { method: "DELETE" })
+      .then(function (res) { return res.ok ? null : Promise.reject(new Error("Delete failed")); })
+      .then(function () {
+        allRequests = allRequests.filter(function (r) { return r.id !== id; });
+        renderRequestsList();
+        showToast("Request deleted", true);
+      })
+      .catch(function () {
+        showToast("Couldn't delete - check your internet connection.", false);
+      });
+  };
 
   // ===== Helpers =====
   function escapeHtml(str) {
