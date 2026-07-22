@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>D-FLIX Admin Panel</title>
+<title>D-FLIX Admin — Posters</title>
 <style>
   :root {
     --bg: #050508;
@@ -11,31 +11,20 @@
     --card: #12121a;
     --border: rgba(255,255,255,0.08);
     --blue: #00e5ff;
-    --blue-glow: rgba(0, 229, 255, 0.25);
     --muted: #8a8a96;
     --danger: #ff4d4d;
     --good: #3ddc84;
-    
-    /* Push Panel Theme Accent Integration */
-    --accent: #00f2fe;
-    --accent-glow: rgba(0, 242, 254, 0.25);
-    --card-bg: rgba(22, 26, 46, 0.7);
-    --input-bg: #121629;
-    --text-muted: #8c93b0;
-    --text-main: #f0f3ff;
-    --success: #2ed573;
-    --glass-border: rgba(255, 255, 255, 0.08);
   }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+  * { box-sizing: border-box; }
   body {
     margin: 0; min-height: 100vh;
     background: radial-gradient(circle at 20% -10%, #0d1520 0%, var(--bg) 55%);
     color: #fff;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, 'Inter', system-ui, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   }
   .hidden { display: none !important; }
 
-  /* ---------- Shared Bits ---------- */
+  /* ---------- shared bits ---------- */
   .brand { display: flex; align-items: center; gap: 10px; }
   .brand-mark {
     width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
@@ -61,17 +50,16 @@
   .btn-danger:hover { filter: brightness(1.15); }
   .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-  .field { margin-bottom: 16px; position: relative; }
+  .field { margin-bottom: 16px; }
   .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; font-weight: 600; }
-  .field input[type=text], .field input[type=password], .field input[type=email], .field textarea {
+  .field input {
     width: 100%; background: #0a0a10; border: 1px solid var(--border);
     border-radius: 10px; padding: 12px 14px; color: #fff; font-size: 14px; outline: none;
-    transition: all 0.2s ease;
   }
-  .field input:focus, .field textarea:focus { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-glow); }
+  .field input:focus { border-color: var(--blue); }
   .field input[readonly] { color: var(--muted); }
 
-  /* ---------- Login Screen (Firebase Admin Auth) ---------- */
+  /* ---------- Login screen (Firebase admin auth) ---------- */
   .login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
   .login-card {
     width: 100%; max-width: 360px; background: var(--panel); border: 1px solid var(--border);
@@ -85,7 +73,7 @@
   .login-error.show { display: block; }
   .login-hint { font-size: 12px; color: var(--muted); margin-top: 18px; line-height: 1.5; }
 
-  /* ---------- Admin Shell ---------- */
+  /* ---------- Admin shell ---------- */
   .topbar {
     position: sticky; top: 0; z-index: 30;
     display: flex; align-items: center; justify-content: space-between; gap: 12px;
@@ -101,7 +89,7 @@
 
   .wrap { max-width: 1100px; margin: 0 auto; padding: 22px 20px 60px; }
 
-  /* ---------- Drive Connect State ---------- */
+  /* ---------- Drive connect state ---------- */
   .connect-card {
     background: var(--panel); border: 1px solid var(--border); border-radius: 16px;
     padding: 40px 28px; text-align: center; max-width: 440px; margin: 40px auto;
@@ -115,7 +103,7 @@
   }
   .config-warning code { background: rgba(255,255,255,0.08); padding: 1px 5px; border-radius: 4px; }
 
-  /* ---------- Breadcrumb (File-Manager Feel) ---------- */
+  /* ---------- Breadcrumb (file-manager feel) ---------- */
   .breadcrumb-row {
     display: flex; align-items: center; justify-content: space-between; gap: 12px;
     margin-bottom: 16px; flex-wrap: wrap;
@@ -135,7 +123,7 @@
   .search-row input:focus { border-color: var(--blue); }
   .count-pill { font-size: 11px; color: var(--muted); background: rgba(255,255,255,0.05); padding: 6px 10px; border-radius: 20px; white-space: nowrap; }
 
-  /* ---------- File-Manager Grid ---------- */
+  /* ---------- File-manager grid ---------- */
   .fm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 14px; }
   .fm-card {
     background: var(--card); border: 1px solid var(--border); border-radius: 12px;
@@ -171,10 +159,10 @@
   .empty-state .t { font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 4px; }
   .empty-state .m { font-size: 12px; }
 
-  /* ---------- Manage-All List (Flat) ---------- */
+  /* ---------- Manage-all list (flat) ---------- */
   .poster-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 14px; }
 
-  /* ---------- Poster Edit Modal ---------- */
+  /* ---------- Poster edit modal ---------- */
   .modal-overlay {
     position: fixed; inset: 0; z-index: 100; display: none;
     align-items: center; justify-content: center; background: rgba(0,0,0,0.65); padding: 20px;
@@ -202,7 +190,7 @@
   .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
   .modal-actions .btn { flex: 1; }
 
-  /* ---------- TMDB Auto-Fetch Results Gallery ---------- */
+  /* ---------- TMDB auto-fetch results gallery ---------- */
   .tmdb-results-grid {
     display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 10px;
     max-height: 340px; overflow-y: auto; padding-right: 2px;
@@ -218,7 +206,7 @@
     background: rgba(0,229,255,0.12); color: var(--blue); padding: 1px 5px; border-radius: 5px;
   }
 
-  /* ---------- Bulk Selection On Browse Drive ---------- */
+  /* ---------- Bulk selection on Browse Drive ---------- */
   .fm-card { position: relative; }
   .fm-card .select-check {
     position: absolute; top: 6px; left: 6px; width: 22px; height: 22px; border-radius: 50%;
@@ -239,75 +227,6 @@
   }
   .bulk-bar #bulkCountLabel { font-size: 13px; font-weight: 700; white-space: nowrap; }
 
-  /* ---------- Push Notification Portal Styles ---------- */
-  .push-app-container {
-    width: 100%; max-width: 800px; margin: 0 auto;
-    display: flex; flex-direction: column; gap: 24px;
-  }
-  .glass-card {
-    background: var(--panel); backdrop-filter: blur(12px);
-    border: 1px solid var(--border); border-radius: 16px; padding: 24px;
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-  }
-  .card-title {
-    font-size: 14px; font-weight: 700; text-transform: uppercase;
-    letter-spacing: 1px; color: var(--blue); margin-bottom: 18px;
-    display: flex; align-items: center; gap: 8px;
-  }
-  .poster-sources { display: flex; gap: 10px; margin-bottom: 12px; }
-  .source-btn {
-    background: #0a0a10; border: 1px solid var(--border); color: var(--muted);
-    padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 600;
-    cursor: pointer; transition: all 0.2s;
-  }
-  .source-btn.active {
-    border-color: var(--blue); color: var(--blue); background: rgba(0, 229, 255, 0.1);
-  }
-  .search-results-grid {
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-    gap: 12px; margin-top: 12px; max-height: 380px; overflow-y: auto; padding-right: 4px;
-  }
-  .poster-card {
-    background: #0a0a10; border-radius: 10px; overflow: hidden;
-    cursor: pointer; border: 2px solid transparent; transition: all 0.2s ease; position: relative;
-  }
-  .poster-card:hover { transform: translateY(-4px); border-color: var(--blue); }
-  .poster-card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; display: block; }
-  .poster-card .title { font-size: 11px; padding: 8px; text-align: center; color: #ddd; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-  .poster-preview-pill {
-    display: flex; align-items: center; gap: 12px; background: #0a0a10;
-    border: 1px solid var(--blue); padding: 10px 14px; border-radius: 12px; margin-top: 10px;
-  }
-  .poster-preview-pill img { width: 40px; height: 55px; border-radius: 6px; object-fit: cover; }
-  .poster-preview-pill .info { flex: 1; min-width: 0; }
-  .poster-preview-pill .info .p-title { font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .btn-remove { background: none; border: none; color: var(--danger); font-size: 12px; font-weight: 600; cursor: pointer; }
-
-  .btn-submit {
-    width: 100%; background: var(--blue); color: #001217; font-weight: 700;
-    padding: 14px; border-radius: 10px; border: none; cursor: pointer; font-size: 15px;
-    transition: all 0.2s ease; box-shadow: 0 4px 20px var(--blue-glow);
-  }
-  .btn-submit:hover { opacity: 0.9; transform: translateY(-1px); }
-  .btn-submit:disabled { opacity: 0.4; cursor: not-allowed; }
-
-  .history-list { display: flex; flex-direction: column; gap: 12px; }
-  .history-card {
-    display: flex; align-items: center; gap: 14px; background: #0a0a10;
-    padding: 12px; border-radius: 10px; border: 1px solid var(--border);
-  }
-  .history-card img { width: 42px; height: 60px; border-radius: 6px; object-fit: cover; }
-  .history-details { flex: 1; }
-  .history-details h4 { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
-  .history-details p { font-size: 12px; color: var(--muted); }
-  .btn-del { background: none; border: 1px solid var(--border); color: var(--danger); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; }
-  .btn-del:hover { background: rgba(255, 71, 87, 0.1); }
-
-  .status-text { font-size: 12px; margin-top: 10px; text-align: center; }
-  .status-text.ok { color: var(--good); }
-  .status-text.err { color: var(--danger); }
-
   .toast {
     position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%) translateY(20px);
     background: #12121a; border: 1px solid var(--border); color: #fff;
@@ -318,93 +237,10 @@
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
   .toast.good { border-color: rgba(61,220,132,0.4); }
   .toast.bad { border-color: rgba(255,77,77,0.4); }
-
-  /* ---------- Movie/Series Requests Panel Styles ---------- */
-  .req-top-bar {
-    display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 22px; flex-wrap: wrap; gap: 10px;
-  }
-  .req-title {
-    font-size: 22px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase;
-  }
-  .req-title span { color: var(--blue); text-shadow: 0 0 10px var(--blue-glow); }
-  .req-subtitle { color: var(--muted); font-size: 13px; margin-top: 4px; }
-  .req-top-actions { display: flex; gap: 10px; align-items: center; }
-
-  .req-count-pill {
-    background: rgba(0,229,255,0.1); color: var(--blue); border: 1px solid rgba(0,229,255,0.25);
-    padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 700;
-  }
-
-  .btn-refresh {
-    background: rgba(255,255,255,0.06); border: 1px solid var(--glass-border); color: #fff;
-    padding: 8px 14px; border-radius: 10px; font-size: 13px; cursor: pointer;
-  }
-  .btn-refresh:active { transform: scale(0.97); }
-
-  .req-search-box {
-    margin-bottom: 18px; display: flex; align-items: center; gap: 8px;
-    background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border);
-    border-radius: 12px; padding: 10px 14px;
-  }
-  .req-search-box input {
-    flex: 1; background: none; border: none; outline: none; color: #fff; font-size: 14px;
-  }
-  .req-search-box input::placeholder { color: var(--muted); }
-  .req-search-box svg { width: 16px; height: 16px; color: var(--muted); flex-shrink: 0; }
-
-  .req-list { display: flex; flex-direction: column; gap: 12px; }
-
-  .req-card {
-    background: var(--card-bg); border: 1px solid var(--glass-border); border-radius: 14px;
-    padding: 16px; display: flex; justify-content: space-between; gap: 14px;
-  }
-
-  .req-main { min-width: 0; flex: 1; }
-  .req-name { font-size: 15px; font-weight: 700; color: #fff; word-break: break-word; }
-  .req-note {
-    font-size: 13px; color: var(--muted); margin-top: 5px; line-height: 1.45; word-break: break-word;
-  }
-  .req-note.empty { font-style: italic; opacity: 0.6; }
-  .req-time { font-size: 11px; color: var(--muted); margin-top: 8px; opacity: 0.75; }
-
-  .req-actions { display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
-
-  .btn-icon {
-    width: 34px; height: 34px; border-radius: 9px; border: 1px solid var(--glass-border);
-    background: rgba(255,255,255,0.04); color: var(--muted); display: flex; align-items: center;
-    justify-content: center; cursor: pointer;
-  }
-  .btn-icon svg { width: 16px; height: 16px; }
-  .btn-icon.danger { color: var(--danger); border-color: rgba(255,77,77,0.3); }
-  .btn-icon.danger:active { background: rgba(255,77,77,0.12); }
-
-  .state-screen { text-align: center; padding: 70px 20px; color: var(--muted); }
-  .state-screen .emoji { font-size: 40px; margin-bottom: 12px; }
-  .state-screen .msg { font-size: 14px; }
-
-  .confirm-overlay {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none;
-    align-items: center; justify-content: center; z-index: 900; padding: 20px;
-  }
-  .confirm-overlay.active { display: flex; }
-  .confirm-box {
-    background: #12121a; border: 1px solid var(--glass-border); border-radius: 16px;
-    padding: 20px; width: 100%; max-width: 320px;
-  }
-  .confirm-title { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
-  .confirm-msg { font-size: 13px; color: var(--muted); line-height: 1.5; margin-bottom: 18px; word-break: break-word; }
-  .confirm-actions { display: flex; gap: 10px; }
-  .confirm-btn {
-    flex: 1; padding: 10px; border-radius: 9px; border: none; font-size: 13px; font-weight: 700; cursor: pointer;
-  }
-  .confirm-btn.cancel { background: rgba(255,255,255,0.08); color: #fff; }
-  .confirm-btn.danger { background: var(--danger); color: #fff; }
 </style>
 </head>
 <body>
 
-<!-- Login Screen -->
 <div class="login-wrap" id="loginWrap">
   <div class="login-card">
     <div class="brand">
@@ -427,18 +263,15 @@
   </div>
 </div>
 
-<!-- Main Admin Shell -->
 <div id="adminWrap" class="hidden">
   <div class="topbar">
     <div class="brand">
       <div class="brand-mark">D</div>
-      <div class="brand-text">D-FLIX <span>Admin Panel</span></div>
+      <div class="brand-text">D-FLIX <span>Admin</span></div>
     </div>
     <div class="tabs" id="tabsRow">
       <button class="tab-btn active" data-tab="browse">📁 Browse Drive</button>
       <button class="tab-btn" data-tab="manage">🖼️ All Posters</button>
-      <button class="tab-btn" data-tab="push">🚀 Push Notification</button>
-      <button class="tab-btn" data-tab="requests">📥 Requests</button>
     </div>
     <div style="display:flex; gap:8px;">
       <button class="btn btn-ghost" id="setupHelpBtn">⚙️ Setup help</button>
@@ -457,14 +290,6 @@
     "posters": {
       ".read": true,
       ".write": "auth != null"
-    },
-    "notifications": {
-      ".read": true,
-      ".write": true
-    },
-    "requests": {
-      ".read": true,
-      ".write": true
     }
   }
 }</pre>
@@ -480,7 +305,6 @@ service firebase.storage {
 }</pre>
     </div>
 
-    <!-- TAB 1: BROWSE DRIVE -->
     <div id="tabBrowse">
       <div id="driveConnectState" class="connect-card">
         <div class="e">🔗</div>
@@ -515,7 +339,6 @@ service firebase.storage {
       <button class="btn btn-primary" id="bulkApplyBtn">Apply same poster</button>
     </div>
 
-    <!-- TAB 2: MANAGE ALL POSTERS -->
     <div id="tabManage" class="hidden">
       <div class="search-row">
         <input type="text" id="searchInput" placeholder="Naam se search karein...">
@@ -530,113 +353,9 @@ service firebase.storage {
       </div>
     </div>
 
-    <!-- TAB 3: PUSH NOTIFICATION PORTAL -->
-    <div id="tabPush" class="hidden">
-      <div class="push-app-container">
-        
-        <!-- Config Card -->
-        <div class="glass-card">
-          <div class="card-title">⚙️ Database Setup</div>
-          <div class="field">
-            <input type="text" id="dbUrlInput" placeholder="Firebase DB URL (e.g. https://your-app-default-rtdb.firebaseio.com)">
-          </div>
-          <div class="field" style="display: flex; gap: 10px; margin-bottom: 0;">
-            <input type="text" id="dbSecretInput" placeholder="Database Secret (Optional)">
-            <button class="btn-submit" id="btnSaveConfig" style="width: 120px;">Save</button>
-          </div>
-          <div id="configStatus" class="status-text"></div>
-        </div>
-
-        <!-- Broadcast Form -->
-        <div class="glass-card">
-          <div class="card-title">🚀 New Push Broadcast</div>
-          
-          <div class="field">
-            <label>Attach Poster (Select Source)</label>
-            <div class="poster-sources">
-              <button class="source-btn active" id="btnModeImdb" onclick="setPosterMode('imdb')">💛 IMDb Search</button>
-              <button class="source-btn" id="btnModeTmdb" onclick="setPosterMode('tmdb')">🎬 TMDB Search</button>
-              <button class="source-btn" id="btnModeUrl" onclick="setPosterMode('url')">🔗 Image Link / Google</button>
-            </div>
-
-            <!-- Mode 1: IMDb Search -->
-            <div id="modeImdbContainer">
-              <input type="text" id="imdbSearchInput" placeholder="Search IMDb (e.g. Oppenheimer, Batman, Avatar)...">
-              <div id="imdbResults" class="search-results-grid"></div>
-            </div>
-
-            <!-- Mode 2: TMDB Search -->
-            <div id="modeTmdbContainer" style="display:none;">
-              <input type="text" id="tmdbSearchInput" placeholder="Search TMDB (e.g. Stranger Things or raw file string)...">
-              <div id="tmdbResults" class="search-results-grid"></div>
-            </div>
-
-            <!-- Mode 3: Direct URL -->
-            <div id="modeUrlContainer" style="display:none; gap:10px;">
-              <input type="text" id="directUrlInput" placeholder="Paste image link from Google or Web (e.g. https://...)">
-              <button class="btn-submit" id="btnAttachUrl" style="width:110px; margin-top:8px; font-size:13px; padding:10px;">Preview</button>
-            </div>
-
-            <!-- Selected Poster Preview -->
-            <div id="selectedPosterBox" class="poster-preview-pill" style="display:none;">
-              <img id="selectedPosterImg" src="" alt="" referrerpolicy="no-referrer">
-              <div class="info">
-                <div class="p-title" id="selectedPosterTitle"></div>
-              </div>
-              <button class="btn-remove" id="btnRemovePoster">Remove</button>
-            </div>
-          </div>
-
-          <div class="field">
-            <label>Notification Title</label>
-            <input type="text" id="titleInput" placeholder="Enter title...">
-          </div>
-
-          <div class="field">
-            <label>Message Content</label>
-            <textarea id="bodyInput" rows="3" placeholder="Enter message description..."></textarea>
-          </div>
-
-          <button class="btn-submit" id="btnSend">Dispatch Notification</button>
-          <div id="sendStatus" class="status-text"></div>
-        </div>
-
-        <!-- Sent History -->
-        <div class="glass-card">
-          <div class="card-title">🕒 Recently Sent</div>
-          <div id="historyList" class="history-list"></div>
-        </div>
-
-      </div>
-    </div>
-
-    <!-- TAB 4: MOVIE / SERIES REQUESTS -->
-    <div id="tabRequests" class="hidden">
-      <div class="req-top-bar">
-        <div>
-          <div class="req-title">D-<span>FLIX</span> Admin</div>
-          <div class="req-subtitle">Movie / Series Requests</div>
-        </div>
-        <div class="req-top-actions">
-          <span class="req-count-pill" id="reqCountPill">0</span>
-          <button class="btn-refresh" id="btnRefreshReq" onclick="loadRequests()">Refresh</button>
-        </div>
-      </div>
-
-      <div class="req-search-box">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-        <input type="text" id="reqSearchInput" placeholder="Search by name..." oninput="renderRequestsList()">
-      </div>
-
-      <div id="reqListContainer">
-        <div class="state-screen"><div class="emoji">⏳</div><div class="msg">Loading requests...</div></div>
-      </div>
-    </div>
-
   </div>
 </div>
 
-<!-- Modal Dialog for Poster Setup -->
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal-box">
     <div class="modal-title" id="modalTitle">Set poster</div>
@@ -689,21 +408,9 @@ service firebase.storage {
   </div>
 </div>
 
-<!-- Request Deletion Confirm Overlay -->
-<div class="confirm-overlay" id="confirmOverlay" onclick="if(event.target===this) closeConfirm();">
-  <div class="confirm-box">
-    <div class="confirm-title">Delete this request?</div>
-    <div class="confirm-msg" id="confirmMsg"></div>
-    <div class="confirm-actions">
-      <button class="confirm-btn cancel" onclick="closeConfirm()">Cancel</button>
-      <button class="confirm-btn danger" id="confirmDeleteBtn">Delete</button>
-    </div>
-  </div>
-</div>
 
 <div class="toast" id="toast"></div>
 
-<!-- SDK Imports -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
@@ -880,8 +587,6 @@ service firebase.storage {
   const tabsRow = document.getElementById("tabsRow");
   const tabBrowse = document.getElementById("tabBrowse");
   const tabManage = document.getElementById("tabManage");
-  const tabPush = document.getElementById("tabPush");
-  const tabRequests = document.getElementById("tabRequests");
 
   const driveConnectState = document.getElementById("driveConnectState");
   const driveBrowseState = document.getElementById("driveBrowseState");
@@ -967,8 +672,6 @@ service firebase.storage {
       loginWrap.classList.add("hidden");
       adminWrap.classList.remove("hidden");
       attachPosterListener();
-      loadHistory();
-      loadRequests();
     } else {
       adminWrap.classList.add("hidden");
       loginWrap.classList.remove("hidden");
@@ -982,11 +685,6 @@ service firebase.storage {
       var tab = btn.getAttribute("data-tab");
       tabBrowse.classList.toggle("hidden", tab !== "browse");
       tabManage.classList.toggle("hidden", tab !== "manage");
-      tabPush.classList.toggle("hidden", tab !== "push");
-      tabRequests.classList.toggle("hidden", tab !== "requests");
-      if(tab === "requests") {
-        loadRequests();
-      }
     });
   });
 
@@ -1602,375 +1300,6 @@ service firebase.storage {
       });
   }
 
-  // ============================================================
-  // PUSH NOTIFICATION PORTAL LOGIC
-  // ============================================================
-  var LS_URL_KEY = "dflix_admin_db_url";
-  var LS_SECRET_KEY = "dflix_admin_db_secret";
-  var DEFAULT_DB_URL = "https://dflix-7b2d2-default-rtdb.firebaseio.com";
-
-  var dbUrlInput = document.getElementById("dbUrlInput");
-  var dbSecretInput = document.getElementById("dbSecretInput");
-  var configStatus = document.getElementById("configStatus");
-  
-  var imdbSearchInput = document.getElementById("imdbSearchInput");
-  var imdbResults = document.getElementById("imdbResults");
-  var tmdbSearchInput = document.getElementById("tmdbSearchInput");
-  var tmdbResults = document.getElementById("tmdbResults");
-  var directUrlInput = document.getElementById("directUrlInput");
-  var btnAttachUrl = document.getElementById("btnAttachUrl");
-
-  var selectedPosterBox = document.getElementById("selectedPosterBox");
-  var selectedPosterImg = document.getElementById("selectedPosterImg");
-  var selectedPosterTitle = document.getElementById("selectedPosterTitle");
-  
-  var titleInput = document.getElementById("titleInput");
-  var bodyInput = document.getElementById("bodyInput");
-  var sendStatus = document.getElementById("sendStatus");
-  var historyList = document.getElementById("historyList");
-
-  var selectedPoster = null;
-  var searchTimer = null;
-
-  function getDbUrl() { return (localStorage.getItem(LS_URL_KEY) || DEFAULT_DB_URL).replace(/\/$/, ""); }
-  function getDbSecret() { return localStorage.getItem(LS_SECRET_KEY) || ""; }
-
-  dbUrlInput.value = getDbUrl();
-  dbSecretInput.value = getDbSecret();
-
-  document.getElementById("btnSaveConfig").addEventListener("click", function () {
-    localStorage.setItem(LS_URL_KEY, dbUrlInput.value.trim().replace(/\/$/, ""));
-    localStorage.setItem(LS_SECRET_KEY, dbSecretInput.value.trim());
-    configStatus.className = "status-text ok";
-    configStatus.textContent = "Saved configuration successfully.";
-  });
-
-  /* Mode Switcher */
-  function setPosterMode(mode) {
-    document.getElementById("btnModeImdb").classList.toggle("active", mode === 'imdb');
-    document.getElementById("btnModeTmdb").classList.toggle("active", mode === 'tmdb');
-    document.getElementById("btnModeUrl").classList.toggle("active", mode === 'url');
-
-    document.getElementById("modeImdbContainer").style.display = mode === 'imdb' ? 'block' : 'none';
-    document.getElementById("modeTmdbContainer").style.display = mode === 'tmdb' ? 'block' : 'none';
-    document.getElementById("modeUrlContainer").style.display = mode === 'url' ? 'flex' : 'none';
-  }
-
-  /* IMDb Search Logic */
-  imdbSearchInput.addEventListener("input", function() {
-    var q = imdbSearchInput.value.trim();
-    clearTimeout(searchTimer);
-    if (q.length < 2) { imdbResults.innerHTML = ""; return; }
-    searchTimer = setTimeout(function () { fetchIMDb(q); }, 300);
-  });
-
-  function fetchIMDb(query) {
-    imdbResults.innerHTML = '<div style="grid-column:1/-1; font-size:12px; color:var(--text-muted)">Searching IMDb...</div>';
-    
-    var cleanQuery = query.toLowerCase().replace(/[^a-z0-9]/g, '');
-    var firstChar = cleanQuery.charAt(0) || 'a';
-    var imdbUrl = "https://v3.sg.media-imdb.com/suggestion/x/" + firstChar + "/" + encodeURIComponent(cleanQuery) + ".json";
-    var proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(imdbUrl);
-
-    fetch(proxyUrl)
-      .then(function(r) { return r.json(); })
-      .then(function(data) {
-        var items = data.d || [];
-        var posters = [];
-        
-        items.forEach(function(item) {
-          if (item.i && item.i.imageUrl) {
-            posters.push({
-              title: item.l + (item.y ? " (" + item.y + ")" : ""),
-              poster: item.i.imageUrl
-            });
-          }
-        });
-
-        renderGridResults(imdbResults, posters);
-      })
-      .catch(function() {
-        imdbResults.innerHTML = '<div style="grid-column:1/-1; font-size:12px; color:var(--text-muted)">Could not fetch from IMDb. Try TMDB.</div>';
-      });
-  }
-
-  /* TMDB Search Logic */
-  tmdbSearchInput.addEventListener("input", function () {
-    var q = tmdbSearchInput.value.trim();
-    clearTimeout(searchTimer);
-    if (q.length < 2) { tmdbResults.innerHTML = ""; return; }
-    searchTimer = setTimeout(function () { fetchTMDB(q); }, 300);
-  });
-
-  function fetchTMDB(rawQuery) {
-    tmdbResults.innerHTML = '<div style="grid-column:1/-1; font-size:12px; color:var(--text-muted)">Searching TMDB...</div>';
-    
-    var parsed = tmdbParseFilename(rawQuery);
-    var queryToUse = parsed.title || rawQuery;
-
-    var movieUrl = "https://api.themoviedb.org/3/search/movie?api_key=" + TMDB_API_KEY + "&query=" + encodeURIComponent(queryToUse) + (parsed.year ? "&year=" + parsed.year : "");
-    var tvUrl = "https://api.themoviedb.org/3/search/tv?api_key=" + TMDB_API_KEY + "&query=" + encodeURIComponent(queryToUse);
-
-    Promise.all([
-      fetch(movieUrl).then(function(r) { return r.json(); }).catch(function() { return { results: [] }; }),
-      fetch(tvUrl).then(function(r) { return r.json(); }).catch(function() { return { results: [] }; })
-    ]).then(function (data) {
-      var movies = (data[0].results || []).slice(0, 6);
-      var tvs = (data[1].results || []).slice(0, 6);
-      
-      var combined = [];
-      movies.forEach(function(m) { if(m.poster_path) combined.push({ title: m.title, poster: TMDB_IMAGE_BASE + m.poster_path }); });
-      tvs.forEach(function(t) { if(t.poster_path) combined.push({ title: t.name, poster: TMDB_IMAGE_BASE + t.poster_path }); });
-
-      renderGridResults(tmdbResults, combined);
-    }).catch(function() {
-      tmdbResults.innerHTML = '<div style="grid-column:1/-1; font-size:12px; color:var(--text-muted)">Search failed. Try again.</div>';
-    });
-  }
-
-  function renderGridResults(container, items) {
-    if (items.length === 0) {
-      container.innerHTML = '<div style="grid-column:1/-1; font-size:12px; color:var(--text-muted)">No poster results found.</div>';
-      return;
-    }
-
-    var html = "";
-    items.forEach(function(item) {
-      html += '<div class="poster-card" onclick="selectPoster(\'' + item.poster.replace(/'/g, "\\'") + '\', \'' + item.title.replace(/'/g, "\\'") + '\')">'
-        + '<img src="' + item.poster + '" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src=\'https://via.placeholder.com/342x513?text=No+Poster\';">'
-        + '<div class="title">' + item.title + '</div>'
-        + '</div>';
-    });
-    container.innerHTML = html;
-  }
-
-  btnAttachUrl.addEventListener("click", function() {
-    var url = directUrlInput.value.trim();
-    if(!url) return;
-    selectPoster(url, "Custom Image Link");
-    directUrlInput.value = "";
-  });
-
-  function selectPoster(url, title) {
-    selectedPoster = { url: url, title: title };
-    selectedPosterImg.src = url;
-    selectedPosterTitle.textContent = title;
-    selectedPosterBox.style.display = "flex";
-    
-    if(!titleInput.value && title !== "Custom Image Link") titleInput.value = title;
-    imdbResults.innerHTML = "";
-    tmdbResults.innerHTML = "";
-    imdbSearchInput.value = "";
-    tmdbSearchInput.value = "";
-  }
-
-  document.getElementById("btnRemovePoster").addEventListener("click", function() {
-    selectedPoster = null;
-    selectedPosterBox.style.display = "none";
-  });
-
-  document.getElementById("btnSend").addEventListener("click", function() {
-    var title = titleInput.value.trim();
-    var body = bodyInput.value.trim();
-
-    if(!title && !body) {
-      sendStatus.className = "status-text err";
-      sendStatus.textContent = "Please fill in a title or body.";
-      return;
-    }
-
-    var btn = this;
-    btn.disabled = true;
-    sendStatus.className = "status-text";
-    sendStatus.textContent = "Sending notification...";
-
-    var payload = { title: title, body: body, ts: Date.now() };
-    if(selectedPoster) payload.poster = selectedPoster.url;
-
-    var url = getDbUrl() + "/notifications.json";
-    if(getDbSecret()) url += "?auth=" + encodeURIComponent(getDbSecret());
-
-    fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    })
-    .then(function(r) { if(!r.ok) throw new Error(); return r.json(); })
-    .then(function() {
-      sendStatus.className = "status-text ok";
-      sendStatus.textContent = "Notification sent successfully!";
-      titleInput.value = "";
-      bodyInput.value = "";
-      selectedPoster = null;
-      selectedPosterBox.style.display = "none";
-      loadHistory();
-    })
-    .catch(function() {
-      sendStatus.className = "status-text err";
-      sendStatus.textContent = "Failed to send. Verify Firebase DB URL/Secret.";
-    })
-    .finally(function() { btn.disabled = false; });
-  });
-
-  function loadHistory() {
-    var url = getDbUrl() + "/notifications.json";
-    if(getDbSecret()) url += "?auth=" + encodeURIComponent(getDbSecret());
-
-    fetch(url)
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      if(!data) { historyList.innerHTML = '<div style="font-size:12px; color:var(--text-muted)">No notifications sent yet.</div>'; return; }
-      
-      var list = Object.keys(data).map(function(k) { return Object.assign({ id: k }, data[k]); });
-      list.sort(function(a,b) { return (b.ts || 0) - (a.ts || 0); });
-
-      var html = "";
-      list.forEach(function(item) {
-        var imgHtml = item.poster ? '<img src="' + item.poster + '" referrerpolicy="no-referrer">' : '<div style="width:42px;height:60px;background:#121629;border-radius:6px;"></div>';
-        html += '<div class="history-card" id="hist-' + item.id + '">'
-          + imgHtml
-          + '<div class="history-details">'
-          + '<h4>' + (item.title || "No Title") + '</h4>'
-          + '<p>' + (item.body || "") + '</p>'
-          + '</div>'
-          + '<button class="btn-del" onclick="deleteHistoryItem(\'' + item.id + '\')">Delete</button>'
-          + '</div>';
-      });
-      historyList.innerHTML = html;
-    });
-  }
-
-  function deleteHistoryItem(id) {
-    var url = getDbUrl() + "/notifications/" + id + ".json";
-    if(getDbSecret()) url += "?auth=" + encodeURIComponent(getDbSecret());
-
-    fetch(url, { method: "DELETE" }).then(function() {
-      var el = document.getElementById("hist-" + id);
-      if(el) el.remove();
-    });
-  }
-
-  // ============================================================
-  // MOVIE / SERIES REQUESTS PORTAL LOGIC
-  // ============================================================
-  var allRequests = [];
-  var pendingDeleteId = null;
-
-  function reqTimeAgo(ts) {
-    var diffSec = Math.max(0, Math.floor((Date.now() - ts) / 1000));
-    if (diffSec < 60) return "Just now";
-    var diffMin = Math.floor(diffSec / 60);
-    if (diffMin < 60) return diffMin + "m ago";
-    var diffHr = Math.floor(diffMin / 60);
-    if (diffHr < 24) return diffHr + "h ago";
-    var diffDay = Math.floor(diffHr / 24);
-    if (diffDay < 7) return diffDay + "d ago";
-    return new Date(ts).toLocaleDateString() + " " + new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  }
-
-  function loadRequests() {
-    var listEl = document.getElementById("reqListContainer");
-    if (!listEl) return;
-    listEl.innerHTML = '<div class="state-screen"><div class="emoji">⏳</div><div class="msg">Loading requests...</div></div>';
-
-    var url = getDbUrl() + "/requests.json";
-    if (getDbSecret()) url += "?auth=" + encodeURIComponent(getDbSecret());
-
-    fetch(url)
-      .then(function (res) { return res.ok ? res.json() : Promise.reject(new Error("Failed to load")); })
-      .then(function (data) {
-        allRequests = [];
-        if (data) {
-          Object.keys(data).forEach(function (key) {
-            var item = data[key] || {};
-            allRequests.push({
-              id: key,
-              name: item.name || "(no name)",
-              note: item.note || "",
-              ts: item.ts || 0
-            });
-          });
-        }
-        allRequests.sort(function (a, b) { return b.ts - a.ts; });
-        renderRequestsList();
-      })
-      .catch(function () {
-        listEl.innerHTML = '<div class="state-screen"><div class="emoji">⚠️</div><div class="msg">Couldn\'t load requests. Check connection or DB setup and tap Refresh.</div></div>';
-      });
-  }
-
-  function renderRequestsList() {
-    var listEl = document.getElementById("reqListContainer");
-    var searchEl = document.getElementById("reqSearchInput");
-    var query = searchEl ? searchEl.value.trim().toLowerCase() : "";
-
-    var filtered = allRequests.filter(function (r) {
-      return !query || r.name.toLowerCase().indexOf(query) !== -1 || r.note.toLowerCase().indexOf(query) !== -1;
-    });
-
-    var countEl = document.getElementById("reqCountPill");
-    if (countEl) countEl.textContent = allRequests.length;
-
-    if (filtered.length === 0) {
-      listEl.innerHTML = '<div class="state-screen"><div class="emoji">🎬</div><div class="msg">'
-        + (allRequests.length === 0 ? "No requests yet." : "No requests match your search.")
-        + '</div></div>';
-      return;
-    }
-
-    var html = '<div class="req-list">';
-    filtered.forEach(function (r) {
-      html += '<div class="req-card">'
-        + '<div class="req-main">'
-        + '<div class="req-name">' + escapeHtml(r.name) + '</div>'
-        + '<div class="req-note' + (r.note ? '' : ' empty') + '">' + (r.note ? escapeHtml(r.note) : 'No additional note') + '</div>'
-        + '<div class="req-time">' + reqTimeAgo(r.ts) + '</div>'
-        + '</div>'
-        + '<div class="req-actions">'
-        + '<button class="btn-icon danger" onclick="confirmDeleteRequest(\'' + r.id + '\')" title="Delete">'
-        + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6h16Z"/></svg>'
-        + '</button>'
-        + '</div>'
-        + '</div>';
-    });
-    html += '</div>';
-    listEl.innerHTML = html;
-  }
-
-  function confirmDeleteRequest(id) {
-    var req = allRequests.find(function (r) { return r.id === id; });
-    pendingDeleteId = id;
-    document.getElementById("confirmMsg").textContent = req
-      ? 'Delete request for "' + req.name + '"? This cannot be undone.'
-      : "Delete this request? This cannot be undone.";
-    document.getElementById("confirmOverlay").classList.add("active");
-  }
-
-  function closeConfirm() {
-    document.getElementById("confirmOverlay").classList.remove("active");
-    pendingDeleteId = null;
-  }
-
-  document.getElementById("confirmDeleteBtn").onclick = function () {
-    if (!pendingDeleteId) return;
-    var id = pendingDeleteId;
-    closeConfirm();
-
-    var url = getDbUrl() + "/requests/" + id + ".json";
-    if (getDbSecret()) url += "?auth=" + encodeURIComponent(getDbSecret());
-
-    fetch(url, { method: "DELETE" })
-      .then(function (res) { return res.ok ? null : Promise.reject(new Error("Delete failed")); })
-      .then(function () {
-        allRequests = allRequests.filter(function (r) { return r.id !== id; });
-        renderRequestsList();
-        showToast("Request deleted", true);
-      })
-      .catch(function () {
-        showToast("Couldn't delete - check your internet connection.", false);
-      });
-  };
-
   // ===== Helpers =====
   function escapeHtml(str) {
     var div = document.createElement("div");
@@ -1987,4 +1316,4 @@ service firebase.storage {
   }
 </script>
 </body>
-</html>
+  </html>
