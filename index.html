@@ -15,17 +15,26 @@
     --muted: #8a8a96;
     --danger: #ff4d4d;
     --good: #3ddc84;
+    
+    /* Push Panel Theme Accent Integration */
+    --accent: #00f2fe;
+    --accent-glow: rgba(0, 242, 254, 0.25);
+    --card-bg: rgba(22, 26, 46, 0.7);
+    --input-bg: #121629;
+    --text-muted: #8c93b0;
+    --text-main: #f0f3ff;
+    --success: #2ed573;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    min-height: 100vh;
+    margin: 0; min-height: 100vh;
     background: radial-gradient(circle at 20% -10%, #0d1520 0%, var(--bg) 55%);
     color: #fff;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, 'Inter', system-ui, sans-serif;
   }
   .hidden { display: none !important; }
 
-  /* ---------- Shared UI Elements ---------- */
+  /* ---------- Shared Bits ---------- */
   .brand { display: flex; align-items: center; gap: 10px; }
   .brand-mark {
     width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
@@ -51,15 +60,17 @@
   .btn-danger:hover { filter: brightness(1.15); }
   .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-  .field { margin-bottom: 16px; }
+  .field { margin-bottom: 16px; position: relative; }
   .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; font-weight: 600; }
-  .field input, .field textarea {
+  .field input[type=text], .field input[type=password], .field input[type=email], .field textarea {
     width: 100%; background: #0a0a10; border: 1px solid var(--border);
     border-radius: 10px; padding: 12px 14px; color: #fff; font-size: 14px; outline: none;
+    transition: all 0.2s ease;
   }
-  .field input:focus, .field textarea:focus { border-color: var(--blue); }
+  .field input:focus, .field textarea:focus { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-glow); }
+  .field input[readonly] { color: var(--muted); }
 
-  /* ---------- Login Screen ---------- */
+  /* ---------- Login Screen (Firebase Admin Auth) ---------- */
   .login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
   .login-card {
     width: 100%; max-width: 360px; background: var(--panel); border: 1px solid var(--border);
@@ -73,7 +84,7 @@
   .login-error.show { display: block; }
   .login-hint { font-size: 12px; color: var(--muted); margin-top: 18px; line-height: 1.5; }
 
-  /* ---------- Topbar & Navigation ---------- */
+  /* ---------- Admin Shell ---------- */
   .topbar {
     position: sticky; top: 0; z-index: 30;
     display: flex; align-items: center; justify-content: space-between; gap: 12px;
@@ -89,7 +100,7 @@
 
   .wrap { max-width: 1100px; margin: 0 auto; padding: 22px 20px 60px; }
 
-  /* ---------- Drive Connect ---------- */
+  /* ---------- Drive Connect State ---------- */
   .connect-card {
     background: var(--panel); border: 1px solid var(--border); border-radius: 16px;
     padding: 40px 28px; text-align: center; max-width: 440px; margin: 40px auto;
@@ -97,15 +108,34 @@
   .connect-card .e { font-size: 36px; margin-bottom: 14px; }
   .connect-card .t { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
   .connect-card .m { font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 22px; }
+  .config-warning {
+    background: rgba(255,77,77,0.1); border: 1px solid rgba(255,77,77,0.3); color: #ff8a8a;
+    font-size: 12px; padding: 12px 14px; border-radius: 10px; text-align: left; line-height: 1.6; margin-bottom: 18px;
+  }
+  .config-warning code { background: rgba(255,255,255,0.08); padding: 1px 5px; border-radius: 4px; }
 
-  /* ---------- Drive File Manager ---------- */
-  .breadcrumb-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+  /* ---------- Breadcrumb (File-Manager Feel) ---------- */
+  .breadcrumb-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    margin-bottom: 16px; flex-wrap: wrap;
+  }
   .breadcrumb { font-size: 13px; color: var(--muted); display: flex; align-items: center; flex-wrap: wrap; gap: 2px; }
   .breadcrumb .crumb { cursor: pointer; padding: 4px 6px; border-radius: 6px; }
   .breadcrumb .crumb:hover { background: rgba(255,255,255,0.06); color: #fff; }
   .breadcrumb .crumb:last-child { color: #fff; font-weight: 700; cursor: default; }
+  .breadcrumb .crumb:last-child:hover { background: none; }
+  .breadcrumb .crumb-sep { color: #444; padding: 0 2px; }
 
-  .fm-grid, .poster-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 14px; }
+  .search-row { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+  .search-row input {
+    flex: 1; background: #0a0a10; border: 1px solid var(--border); border-radius: 10px;
+    padding: 11px 14px; color: #fff; font-size: 13px; outline: none;
+  }
+  .search-row input:focus { border-color: var(--blue); }
+  .count-pill { font-size: 11px; color: var(--muted); background: rgba(255,255,255,0.05); padding: 6px 10px; border-radius: 20px; white-space: nowrap; }
+
+  /* ---------- File-Manager Grid ---------- */
+  .fm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 14px; }
   .fm-card {
     background: var(--card); border: 1px solid var(--border); border-radius: 12px;
     overflow: hidden; display: flex; flex-direction: column; position: relative;
@@ -116,6 +146,11 @@
   }
   .fm-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .fm-thumb .ph { font-size: 30px; color: var(--muted); }
+  .fm-thumb .poster-badge {
+    position: absolute; top: 6px; right: 6px; background: var(--good); color: #06210f;
+    font-size: 10px; font-weight: 800; width: 18px; height: 18px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+  }
   .fm-info { padding: 9px 10px 10px; }
   .fm-name {
     font-size: 12px; font-weight: 600; line-height: 1.35;
@@ -127,67 +162,157 @@
     flex: 1; background: rgba(255,255,255,0.06); border: none; color: #fff;
     border-radius: 7px; padding: 7px 0; font-size: 11px; font-weight: 600; cursor: pointer;
   }
+  .fm-actions button:hover { filter: brightness(1.3); }
   .fm-actions .poster-btn { background: rgba(0,229,255,0.12); color: var(--blue); }
 
-  /* ---------- Push Notification Section ---------- */
-  .push-container { display: flex; flex-direction: column; gap: 20px; max-width: 800px; margin: 0 auto; }
+  .empty-state { text-align: center; padding: 50px 20px; color: var(--muted); }
+  .empty-state .e { font-size: 34px; margin-bottom: 10px; }
+  .empty-state .t { font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+  .empty-state .m { font-size: 12px; }
+
+  /* ---------- Manage-All List (Flat) ---------- */
+  .poster-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 14px; }
+
+  /* ---------- Poster Edit Modal ---------- */
+  .modal-overlay {
+    position: fixed; inset: 0; z-index: 100; display: none;
+    align-items: center; justify-content: center; background: rgba(0,0,0,0.65); padding: 20px;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal-box {
+    width: 100%; max-width: 380px; background: var(--panel); border: 1px solid var(--border);
+    border-radius: 16px; padding: 24px; max-height: 90vh; overflow-y: auto;
+  }
+  .modal-title { font-size: 15px; font-weight: 700; margin-bottom: 18px; }
+  .preview-box {
+    width: 140px; aspect-ratio: 2/3; background: #0a0a10; border: 1px dashed var(--border);
+    border-radius: 12px; display: flex; align-items: center; justify-content: center;
+    overflow: hidden; margin: 0 auto 18px; color: var(--muted); font-size: 12px; text-align: center;
+  }
+  .preview-box img { width: 100%; height: 100%; object-fit: cover; }
+  .upload-row { display: flex; gap: 8px; align-items: center; }
+  .upload-row input[type=file] { display: none; }
+  .upload-label {
+    flex: 1; text-align: center; font-size: 12px; padding: 10px;
+    border: 1px dashed var(--border); border-radius: 8px; cursor: pointer; color: var(--muted);
+  }
+  .upload-label:hover { border-color: var(--blue); color: var(--blue); }
+  .upload-progress { font-size: 11px; color: var(--blue); margin-top: 6px; display: none; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+  .modal-actions .btn { flex: 1; }
+
+  /* ---------- TMDB Auto-Fetch Results Gallery ---------- */
+  .tmdb-results-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 10px;
+    max-height: 340px; overflow-y: auto; padding-right: 2px;
+  }
+  .tmdb-result-card { cursor: pointer; border-radius: 10px; overflow: hidden; background: var(--card); border: 1px solid var(--border); }
+  .tmdb-result-card:hover { border-color: var(--blue); }
+  .tmdb-result-thumb { width: 100%; aspect-ratio: 2/3; background: #0a0a10; display: flex; align-items: center; justify-content: center; }
+  .tmdb-result-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .tmdb-result-thumb .ph { font-size: 20px; color: var(--muted); }
+  .tmdb-result-label { font-size: 10.5px; padding: 5px 6px 6px; line-height: 1.3; }
+  .tmdb-type-tag {
+    display: inline-block; margin-top: 3px; font-size: 9px; font-weight: 700;
+    background: rgba(0,229,255,0.12); color: var(--blue); padding: 1px 5px; border-radius: 5px;
+  }
+
+  /* ---------- Bulk Selection On Browse Drive ---------- */
+  .fm-card { position: relative; }
+  .fm-card .select-check {
+    position: absolute; top: 6px; left: 6px; width: 22px; height: 22px; border-radius: 50%;
+    background: rgba(0,0,0,0.55); border: 2px solid rgba(255,255,255,0.5); z-index: 5;
+    display: none; align-items: center; justify-content: center; color: #fff; font-size: 12px; font-weight: 800;
+  }
+  .fm-card.select-mode .select-check { display: flex; }
+  .fm-card.selected .select-check { background: var(--blue); border-color: var(--blue); color: #001217; }
+  .fm-card.selected .fm-thumb { outline: 3px solid var(--blue); outline-offset: -3px; }
+  .fm-card.select-mode { cursor: pointer; }
+  .fm-card.select-mode .fm-actions { pointer-events: none; opacity: 0.4; }
+
+  .bulk-bar {
+    position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%);
+    background: #12121a; border: 1px solid var(--border); border-radius: 14px;
+    padding: 12px 16px; display: flex; align-items: center; gap: 16px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.6); z-index: 90; max-width: 92vw;
+  }
+  .bulk-bar #bulkCountLabel { font-size: 13px; font-weight: 700; white-space: nowrap; }
+
+  /* ---------- Push Notification Portal Styles ---------- */
+  .push-app-container {
+    width: 100%; max-width: 800px; margin: 0 auto;
+    display: flex; flex-direction: column; gap: 24px;
+  }
   .glass-card {
-    background: var(--panel); border: 1px solid var(--border); border-radius: 16px;
-    padding: 24px; box-shadow: 0 8px 32px rgba(0,0,0,0.37);
+    background: var(--panel); backdrop-filter: blur(12px);
+    border: 1px solid var(--border); border-radius: 16px; padding: 24px;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
   }
   .card-title {
-    font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
-    color: var(--blue); margin-bottom: 18px; display: flex; align-items: center; gap: 8px;
+    font-size: 14px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1px; color: var(--blue); margin-bottom: 18px;
+    display: flex; align-items: center; gap: 8px;
   }
-  .poster-sources { display: flex; gap: 10px; margin-bottom: 14px; }
+  .poster-sources { display: flex; gap: 10px; margin-bottom: 12px; }
   .source-btn {
     background: #0a0a10; border: 1px solid var(--border); color: var(--muted);
-    padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer;
+    padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 600;
+    cursor: pointer; transition: all 0.2s;
   }
-  .source-btn.active { border-color: var(--blue); color: var(--blue); background: rgba(0, 229, 255, 0.1); }
+  .source-btn.active {
+    border-color: var(--blue); color: var(--blue); background: rgba(0, 229, 255, 0.1);
+  }
+  .search-results-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 12px; margin-top: 12px; max-height: 380px; overflow-y: auto; padding-right: 4px;
+  }
+  .poster-card {
+    background: #0a0a10; border-radius: 10px; overflow: hidden;
+    cursor: pointer; border: 2px solid transparent; transition: all 0.2s ease; position: relative;
+  }
+  .poster-card:hover { transform: translateY(-4px); border-color: var(--blue); }
+  .poster-card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; display: block; }
+  .poster-card .title { font-size: 11px; padding: 8px; text-align: center; color: #ddd; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
   .poster-preview-pill {
     display: flex; align-items: center; gap: 12px; background: #0a0a10;
     border: 1px solid var(--blue); padding: 10px 14px; border-radius: 12px; margin-top: 10px;
   }
   .poster-preview-pill img { width: 40px; height: 55px; border-radius: 6px; object-fit: cover; }
-  .poster-preview-pill .p-title { font-size: 13px; font-weight: 700; }
+  .poster-preview-pill .info { flex: 1; min-width: 0; }
+  .poster-preview-pill .info .p-title { font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .btn-remove { background: none; border: none; color: var(--danger); font-size: 12px; font-weight: 600; cursor: pointer; }
 
-  /* ---------- TMDB Results Grid ---------- */
-  .tmdb-results-grid {
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px;
-    max-height: 340px; overflow-y: auto; padding-right: 2px; margin-top: 10px;
+  .btn-submit {
+    width: 100%; background: var(--blue); color: #001217; font-weight: 700;
+    padding: 14px; border-radius: 10px; border: none; cursor: pointer; font-size: 15px;
+    transition: all 0.2s ease; box-shadow: 0 4px 20px var(--blue-glow);
   }
-  .tmdb-result-card { cursor: pointer; border-radius: 10px; overflow: hidden; background: var(--card); border: 1px solid var(--border); }
-  .tmdb-result-card:hover { border-color: var(--blue); }
-  .tmdb-result-thumb { width: 100%; aspect-ratio: 2/3; background: #0a0a10; }
-  .tmdb-result-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .tmdb-result-label { font-size: 10.5px; padding: 5px 6px 6px; line-height: 1.3; }
-  .tmdb-type-tag { display: inline-block; margin-top: 3px; font-size: 9px; font-weight: 700; background: rgba(0,229,255,0.12); color: var(--blue); padding: 1px 5px; border-radius: 5px; }
+  .btn-submit:hover { opacity: 0.9; transform: translateY(-1px); }
+  .btn-submit:disabled { opacity: 0.4; cursor: not-allowed; }
 
-  /* ---------- History List ---------- */
   .history-list { display: flex; flex-direction: column; gap: 12px; }
-  .history-card { display: flex; align-items: center; gap: 14px; background: #0a0a10; padding: 12px; border-radius: 10px; border: 1px solid var(--border); }
+  .history-card {
+    display: flex; align-items: center; gap: 14px; background: #0a0a10;
+    padding: 12px; border-radius: 10px; border: 1px solid var(--border);
+  }
   .history-card img { width: 42px; height: 60px; border-radius: 6px; object-fit: cover; }
   .history-details { flex: 1; }
   .history-details h4 { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
   .history-details p { font-size: 12px; color: var(--muted); }
+  .btn-del { background: none; border: 1px solid var(--border); color: var(--danger); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+  .btn-del:hover { background: rgba(255, 71, 87, 0.1); }
 
-  /* ---------- Modals & Toasts ---------- */
-  .modal-overlay {
-    position: fixed; inset: 0; z-index: 100; display: none; align-items: center; justify-content: center;
-    background: rgba(0,0,0,0.65); padding: 20px;
-  }
-  .modal-overlay.active { display: flex; }
-  .modal-box { width: 100%; max-width: 380px; background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 24px; max-height: 90vh; overflow-y: auto; }
-  .preview-box { width: 140px; aspect-ratio: 2/3; background: #0a0a10; border: 1px dashed var(--border); border-radius: 12px; display: flex; align-items: center; justify-content: center; overflow: hidden; margin: 0 auto 18px; }
-  .preview-box img { width: 100%; height: 100%; object-fit: cover; }
+  .status-text { font-size: 12px; margin-top: 10px; text-align: center; }
+  .status-text.ok { color: var(--good); }
+  .status-text.err { color: var(--danger); }
 
   .toast {
     position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%) translateY(20px);
     background: #12121a; border: 1px solid var(--border); color: #fff;
     padding: 12px 20px; border-radius: 10px; font-size: 13px; font-weight: 600;
     opacity: 0; pointer-events: none; transition: all 0.25s ease; z-index: 999;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
   }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
   .toast.good { border-color: rgba(61,220,132,0.4); }
@@ -206,17 +331,20 @@
     <div class="login-error" id="loginError"></div>
     <div class="field">
       <label>Email</label>
-      <input type="email" id="loginEmail" placeholder="admin@example.com">
+      <input type="email" id="loginEmail" placeholder="admin@example.com" autocomplete="username">
     </div>
     <div class="field">
       <label>Password</label>
-      <input type="password" id="loginPassword" placeholder="••••••••">
+      <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password">
     </div>
     <button class="btn btn-primary" id="loginBtn" style="width:100%;">Login</button>
+    <div class="login-hint">
+      Ye account Firebase Console → Authentication → Users me pehle se bana hona chahiye.
+    </div>
   </div>
 </div>
 
-<!-- Admin Main Dashboard Shell -->
+<!-- Main Admin Shell -->
 <div id="adminWrap" class="hidden">
   <div class="topbar">
     <div class="brand">
@@ -229,100 +357,166 @@
       <button class="tab-btn" data-tab="push">🚀 Push Notification</button>
     </div>
     <div style="display:flex; gap:8px;">
+      <button class="btn btn-ghost" id="setupHelpBtn">⚙️ Setup help</button>
       <button class="btn btn-ghost hidden" id="disconnectDriveBtn">Disconnect Drive</button>
       <button class="btn btn-ghost" id="logoutBtn">Logout</button>
     </div>
   </div>
 
   <div class="wrap">
-    
+
+    <div id="setupHelpPanel" class="hidden" style="background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:18px 20px; margin-bottom:20px; font-size:12.5px; line-height:1.7; color:var(--muted);">
+      <div style="color:#fff; font-weight:700; font-size:13.5px; margin-bottom:10px;">Save fail ho raha hai? Ye 2 cheezein check karein:</div>
+      <div style="color:#fff; font-weight:700; margin-bottom:4px;">1. Realtime Database → Rules (Firebase Console)</div>
+      <pre style="background:#0a0a10; border:1px solid var(--border); border-radius:8px; padding:12px; overflow-x:auto; color:#cde; margin:0 0 14px;">{
+  "rules": {
+    "posters": {
+      ".read": true,
+      ".write": "auth != null"
+    },
+    "notifications": {
+      ".read": true,
+      ".write": true
+    }
+  }
+}</pre>
+      <div style="color:#fff; font-weight:700; margin-bottom:4px;">2. Storage → Rules (agar image upload use kar rahe ho)</div>
+      <pre style="background:#0a0a10; border:1px solid var(--border); border-radius:8px; padding:12px; overflow-x:auto; color:#cde; margin:0;">rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /posters/{file} {
+      allow read;
+      allow write: if request.auth != null;
+    }
+  }
+}</pre>
+    </div>
+
     <!-- TAB 1: BROWSE DRIVE -->
     <div id="tabBrowse">
       <div id="driveConnectState" class="connect-card">
         <div class="e">🔗</div>
-        <div class="t">Google Drive Connect Karein</div>
-        <div class="m">Apne Google Drive folder se poster direct select karne ke liye connect karein.</div>
+        <div class="t">Google Drive connect karein</div>
+        <div class="m">
+          Ye admin panel wahi Drive folder browse karta hai jo app me dikhta hai — taaki tum seedhe
+          us par tap karke poster laga sako, koi naam type karne ki zaroorat nahi.
+        </div>
+        <div class="config-warning" id="clientIdWarning">
+          Pehle is file ke andar <code>GOOGLE_CLIENT_ID</code> set karna hoga (Google Cloud Console se
+          "Web application" OAuth Client ID banao). Upar "Setup help" button dekhein.
+        </div>
         <button class="btn btn-primary" id="connectDriveBtn">Connect Google Drive</button>
       </div>
 
       <div id="driveBrowseState" class="hidden">
         <div class="breadcrumb-row">
           <div class="breadcrumb" id="breadcrumb"></div>
-          <div style="display:flex; gap:8px;">
-            <button class="btn btn-ghost" id="selectModeBtn">☑️ Select Multiple</button>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <button class="btn btn-ghost hidden" id="selectAllBtn">☑️ Select All</button>
+            <button class="btn btn-ghost" id="selectModeBtn">☑️ Select multiple</button>
+            <div class="count-pill" id="driveCountPill">0 items</div>
           </div>
         </div>
         <div id="driveBrowseGrid"></div>
       </div>
     </div>
 
-    <!-- TAB 2: MANAGE POSTERS -->
+    <div class="bulk-bar hidden" id="bulkBar">
+      <div id="bulkCountLabel">0 selected</div>
+      <button class="btn btn-ghost" id="bulkCancelBtn">Cancel</button>
+      <button class="btn btn-primary" id="bulkApplyBtn">Apply same poster</button>
+    </div>
+
+    <!-- TAB 2: MANAGE ALL POSTERS -->
     <div id="tabManage" class="hidden">
-      <div class="field">
-        <input type="text" id="searchInput" placeholder="Search posters by title...">
+      <div class="search-row">
+        <input type="text" id="searchInput" placeholder="Naam se search karein...">
+        <div class="count-pill" id="countPill">0 posters</div>
       </div>
-      <div id="posterListWrap"></div>
+      <div id="posterListWrap">
+        <div class="empty-state">
+          <div class="e">🖼️</div>
+          <div class="t">Abhi koi poster nahi</div>
+          <div class="m">"Browse Drive" tab se kisi bhi file/folder par poster lagayein.</div>
+        </div>
+      </div>
     </div>
 
     <!-- TAB 3: PUSH NOTIFICATION PORTAL -->
     <div id="tabPush" class="hidden">
-      <div class="push-container">
+      <div class="push-app-container">
         
+        <!-- Config Card -->
         <div class="glass-card">
-          <div class="card-title">🚀 Broadcast New Notification</div>
+          <div class="card-title">⚙️ Database Setup</div>
+          <div class="field">
+            <input type="text" id="dbUrlInput" placeholder="Firebase DB URL (e.g. https://your-app-default-rtdb.firebaseio.com)">
+          </div>
+          <div class="field" style="display: flex; gap: 10px; margin-bottom: 0;">
+            <input type="text" id="dbSecretInput" placeholder="Database Secret (Optional)">
+            <button class="btn-submit" id="btnSaveConfig" style="width: 120px;">Save</button>
+          </div>
+          <div id="configStatus" class="status-text"></div>
+        </div>
+
+        <!-- Broadcast Form -->
+        <div class="glass-card">
+          <div class="card-title">🚀 New Push Broadcast</div>
           
           <div class="field">
             <label>Attach Poster (Select Source)</label>
             <div class="poster-sources">
-              <button class="source-btn active" id="btnPushModeTmdb" onclick="setPushPosterMode('tmdb')">🎬 Smart TMDB Search</button>
-              <button class="source-btn" id="btnPushModeImdb" onclick="setPushPosterMode('imdb')">💛 IMDb Search</button>
-              <button class="source-btn" id="btnPushModeUrl" onclick="setPushPosterMode('url')">🔗 Image Link</button>
+              <button class="source-btn active" id="btnModeImdb" onclick="setPosterMode('imdb')">💛 IMDb Search</button>
+              <button class="source-btn" id="btnModeTmdb" onclick="setPosterMode('tmdb')">🎬 TMDB Search</button>
+              <button class="source-btn" id="btnModeUrl" onclick="setPosterMode('url')">🔗 Image Link / Google</button>
             </div>
 
-            <!-- Mode 1: Smart TMDB (Matching Upper Engine) -->
-            <div id="pushTmdbContainer">
-              <input type="text" id="pushTmdbInput" placeholder="Enter movie/TV name or file string (e.g. Pathaan.2023.1080p.mkv)...">
-              <div id="pushTmdbResults" class="tmdb-results-grid"></div>
+            <!-- Mode 1: IMDb Search -->
+            <div id="modeImdbContainer">
+              <input type="text" id="imdbSearchInput" placeholder="Search IMDb (e.g. Oppenheimer, Batman, Avatar)...">
+              <div id="imdbResults" class="search-results-grid"></div>
             </div>
 
-            <!-- Mode 2: IMDb Search -->
-            <div id="pushImdbContainer" style="display:none;">
-              <input type="text" id="pushImdbInput" placeholder="Search IMDb...">
-              <div id="pushImdbResults" class="tmdb-results-grid"></div>
+            <!-- Mode 2: TMDB Search -->
+            <div id="modeTmdbContainer" style="display:none;">
+              <input type="text" id="tmdbSearchInput" placeholder="Search TMDB (e.g. Stranger Things or raw file string)...">
+              <div id="tmdbResults" class="search-results-grid"></div>
             </div>
 
-            <!-- Mode 3: Direct Link -->
-            <div id="pushUrlContainer" style="display:none;">
-              <input type="text" id="pushDirectUrlInput" placeholder="Paste image URL https://...">
-              <button class="btn btn-ghost" id="btnPushAttachUrl" style="margin-top:8px;">Attach Link</button>
+            <!-- Mode 3: Direct URL -->
+            <div id="modeUrlContainer" style="display:none; gap:10px;">
+              <input type="text" id="directUrlInput" placeholder="Paste image link from Google or Web (e.g. https://...)">
+              <button class="btn-submit" id="btnAttachUrl" style="width:110px; margin-top:8px; font-size:13px; padding:10px;">Preview</button>
             </div>
 
-            <!-- Selected Poster Preview Pill -->
-            <div id="pushSelectedPosterBox" class="poster-preview-pill" style="display:none;">
-              <img id="pushSelectedPosterImg" src="">
-              <div style="flex:1;">
-                <div class="p-title" id="pushSelectedPosterTitle"></div>
+            <!-- Selected Poster Preview -->
+            <div id="selectedPosterBox" class="poster-preview-pill" style="display:none;">
+              <img id="selectedPosterImg" src="" alt="" referrerpolicy="no-referrer">
+              <div class="info">
+                <div class="p-title" id="selectedPosterTitle"></div>
               </div>
-              <button class="btn btn-danger" style="padding:4px 8px;" id="btnRemovePushPoster">Remove</button>
+              <button class="btn-remove" id="btnRemovePoster">Remove</button>
             </div>
           </div>
 
           <div class="field">
             <label>Notification Title</label>
-            <input type="text" id="pushTitleInput" placeholder="Enter title...">
+            <input type="text" id="titleInput" placeholder="Enter title...">
           </div>
 
           <div class="field">
             <label>Message Content</label>
-            <textarea id="pushBodyInput" rows="3" placeholder="Enter message body..."></textarea>
+            <textarea id="bodyInput" rows="3" placeholder="Enter message description..."></textarea>
           </div>
 
-          <button class="btn btn-primary" id="btnSendNotification" style="width:100%;">Dispatch Notification</button>
+          <button class="btn-submit" id="btnSend">Dispatch Notification</button>
+          <div id="sendStatus" class="status-text"></div>
         </div>
 
+        <!-- Sent History -->
         <div class="glass-card">
-          <div class="card-title">🕒 Sent History</div>
-          <div id="notificationHistoryList" class="history-list"></div>
+          <div class="card-title">🕒 Recently Sent</div>
+          <div id="historyList" class="history-list"></div>
         </div>
 
       </div>
@@ -331,40 +525,62 @@
   </div>
 </div>
 
-<!-- Poster Modal -->
+<!-- Modal Dialog for Poster Setup -->
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal-box">
-    <div class="modal-title" id="modalTitle" style="font-weight:700; margin-bottom:14px;">Set Poster</div>
+    <div class="modal-title" id="modalTitle">Set poster</div>
+
     <div id="modalFormFields">
       <div class="preview-box" id="previewBox">No image</div>
-      <div class="field">
-        <label>Title</label>
-        <input type="text" id="posterName">
+
+      <div class="field" id="posterNameField">
+        <label>Folder / File ka naam</label>
+        <input type="text" id="posterName" placeholder="e.g. Pathaan (2023)">
       </div>
-      <div class="field">
-        <button class="btn btn-ghost" id="autoFetchBtn" style="width:100%;">🔍 Smart Auto-fetch TMDB</button>
+
+      <div class="field hidden" id="bulkSummaryField">
+        <label>Selected items</label>
+        <div id="bulkSummaryText" style="font-size:12.5px; color:var(--muted); line-height:1.6; background:#0a0a10; border:1px solid var(--border); border-radius:10px; padding:10px 12px;"></div>
       </div>
+
+      <div class="field">
+        <button class="btn btn-ghost" id="autoFetchBtn" style="width:100%;">🔍 TMDB se auto-fetch karein (sab options dekhein)</button>
+      </div>
+
       <div class="field">
         <label>Poster Image URL</label>
-        <input type="text" id="posterUrl">
+        <input type="text" id="posterUrl" placeholder="https://...jpg" oninput="onUrlInputChange()">
+      </div>
+
+      <div class="field" style="margin-bottom:0;">
+        <label>Ya seedhe upload karein</label>
+        <div class="upload-row">
+          <label class="upload-label" for="posterFile">📤 Image chunein aur upload karein</label>
+          <input type="file" id="posterFile" accept="image/*">
+        </div>
+        <div class="upload-progress" id="uploadProgress">Uploading... 0%</div>
       </div>
     </div>
 
     <div id="tmdbResultsPanel" class="hidden">
+      <div style="font-size:12.5px; color:var(--muted); margin-bottom:12px;">
+        TMDB par jo bhi milein — jo sahi lage usko tap karein:
+      </div>
       <div id="tmdbResultsGrid" class="tmdb-results-grid"></div>
-      <button class="btn btn-ghost" id="tmdbResultsBackBtn" style="width:100%; margin-top:14px;">← Back</button>
+      <button class="btn btn-ghost" id="tmdbResultsBackBtn" style="width:100%; margin-top:14px;">← Wapas jao</button>
     </div>
 
-    <div style="display:flex; gap:10px; margin-top:20px;">
-      <button class="btn btn-ghost" id="modalCancelBtn" style="flex:1;">Cancel</button>
-      <button class="btn btn-primary" id="modalSaveBtn" style="flex:1;">Save</button>
+    <div class="modal-actions" id="modalActionsRow">
+      <button class="btn btn-ghost" id="modalCancelBtn">Cancel</button>
+      <button class="btn btn-danger hidden" id="modalDeleteBtn">Remove</button>
+      <button class="btn btn-primary" id="modalSaveBtn">Save</button>
     </div>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
-<!-- Firebase Compat Scripts -->
+<!-- SDK Imports -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
@@ -373,7 +589,7 @@
 
 <script>
   // ============================================================
-  // CONFIGURATION
+  // CONFIG — Firebase + Google Drive OAuth
   // ============================================================
   const firebaseConfig = {
     apiKey: "AIzaSyATfDfJNk0lPVpcsZk7yj2p_DSdK9sQXvo",
@@ -382,7 +598,8 @@
     projectId: "dflix-7b2d2",
     storageBucket: "dflix-7b2d2.firebasestorage.app",
     messagingSenderId: "410654152125",
-    appId: "1:410654152125:web:c55db9c81363abce66eed4"
+    appId: "1:410654152125:web:c55db9c81363abce66eed4",
+    measurementId: "G-H3JQPK01YT"
   };
 
   const GOOGLE_CLIENT_ID = "410654152125-cp96b2j3micih6bak84n14sa24rard24.apps.googleusercontent.com";
@@ -391,7 +608,6 @@
 
   const TMDB_API_KEY = "16b0f944d64a43298cf3ce5fc5852ffb";
   const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w342";
-  
   const TMDB_JUNK_TOKENS = [
     "1080p", "720p", "480p", "2160p", "4k", "8k", "hdcam", "hdrip", "dvdrip",
     "webrip", "web dl", "webdl", "bluray", "blu ray", "brrip", "bdrip",
@@ -401,14 +617,9 @@
     "proper", "extended", "uncut", "remastered", "nf", "amzn", "hmax",
     "yify", "yts", "rarbg", "galaxytv", "psa", "org"
   ];
+  var tmdbPosterCache = {}; 
+  var currentFolderFiles = []; 
 
-  firebase.initializeApp(firebaseConfig);
-  const auth = firebase.auth();
-  const db = firebase.database();
-
-  // ============================================================
-  // SMART TMDB PARSER ENGINE (Shared across Posters & Push)
-  // ============================================================
   function tmdbParseFilename(rawName) {
     var name = (rawName || "").replace(/\.(mkv|mp4|avi|mov|wmv|flv|webm|m4v|ts|3gp)$/i, "");
     var year = null;
@@ -440,9 +651,625 @@
     titleSource = titleSource.replace(/\b(19\d{2}|20\d{2})\b/g, " ");
     titleSource = titleSource.replace(/\b\d+(\.\d+)?\s?(MB|GB|KB)\b/gi, " ");
     titleSource = titleSource.replace(/\s+/g, " ").trim();
+    titleSource = titleSource.replace(/^[\s\-:,.]+|[\s\-:,.]+$/g, "").trim();
 
     return { title: titleSource, year: year, guessedType: guessedType };
   }
+
+  function tmdbSearchMovie(title, year, callback) {
+    var url = "https://api.themoviedb.org/3/search/movie?api_key=" + TMDB_API_KEY
+      + "&query=" + encodeURIComponent(title) + (year ? "&year=" + year : "");
+    fetch(url).then(function (r) { return r.json(); }).then(function (data) {
+      var results = data.results || [];
+      if (results.length > 0) {
+        callback(results[0].poster_path ? TMDB_IMAGE_BASE + results[0].poster_path : null);
+      } else if (year) {
+        tmdbSearchMovie(title, null, callback); 
+      } else {
+        callback(null);
+      }
+    }).catch(function () { callback(null); });
+  }
+
+  function tmdbSearchTv(title, callback) {
+    var url = "https://api.themoviedb.org/3/search/tv?api_key=" + TMDB_API_KEY + "&query=" + encodeURIComponent(title);
+    fetch(url).then(function (r) { return r.json(); }).then(function (data) {
+      var results = data.results || [];
+      callback(results.length > 0 && results[0].poster_path ? TMDB_IMAGE_BASE + results[0].poster_path : null);
+    }).catch(function () { callback(null); });
+  }
+
+  function resolveTmdbPoster(rawName, callback) {
+    if (tmdbPosterCache.hasOwnProperty(rawName)) { callback(tmdbPosterCache[rawName]); return; }
+    var parsed = tmdbParseFilename(rawName);
+    if (!parsed.title) { tmdbPosterCache[rawName] = null; callback(null); return; }
+
+    function done(url) {
+      tmdbPosterCache[rawName] = url;
+      callback(url);
+    }
+    if (parsed.guessedType === "tv") {
+      tmdbSearchTv(parsed.title, done);
+    } else {
+      tmdbSearchMovie(parsed.title, parsed.year, done);
+    }
+  }
+
+  function resolvePostersForCards(items) {
+    var queue = items.slice();
+    var concurrency = 3;
+    var active = 0;
+
+    function next() {
+      while (active < concurrency && queue.length > 0) {
+        var item = queue.shift();
+        active++;
+        (function (it) {
+          resolveTmdbPoster(it.name, function (url) {
+            active--;
+            if (url) applyDriveCardPoster(it.id, url);
+            next();
+          });
+        })(item);
+      }
+    }
+    next();
+  }
+
+  function applyDriveCardPoster(id, url) {
+    var cards = driveBrowseGrid.querySelectorAll(".fm-card");
+    for (var i = 0; i < cards.length; i++) {
+      if (cards[i].getAttribute("data-id") === id) {
+        var key = posterKeyEncode(cards[i].getAttribute("data-name"));
+        if (allPosters[key]) return;
+        var thumb = cards[i].querySelector(".fm-thumb");
+        if (thumb) thumb.innerHTML = '<img src="' + escapeHtml(url) + '" loading="lazy">';
+        return;
+      }
+    }
+  }
+
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.database();
+  const storage = firebase.storage();
+
+  auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(function (err) {
+    console.error("Auth persistence set nahi ho payi:", err);
+  });
+
+  function posterKeyEncode(name) {
+    var normalized = (name || "").trim().toLowerCase().replace(/\s+/g, " ");
+    return normalized.replace(/[.#$\[\]\/]/g, function (ch) {
+      return "_" + ch.charCodeAt(0) + "_";
+    });
+  }
+
+  // ===== Elements =====
+  const loginWrap = document.getElementById("loginWrap");
+  const adminWrap = document.getElementById("adminWrap");
+  const loginEmail = document.getElementById("loginEmail");
+  const loginPassword = document.getElementById("loginPassword");
+  const loginBtn = document.getElementById("loginBtn");
+  const loginError = document.getElementById("loginError");
+  const logoutBtn = document.getElementById("logoutBtn");
+
+  const tabsRow = document.getElementById("tabsRow");
+  const tabBrowse = document.getElementById("tabBrowse");
+  const tabManage = document.getElementById("tabManage");
+  const tabPush = document.getElementById("tabPush");
+
+  const driveConnectState = document.getElementById("driveConnectState");
+  const driveBrowseState = document.getElementById("driveBrowseState");
+  const connectDriveBtn = document.getElementById("connectDriveBtn");
+  const disconnectDriveBtn = document.getElementById("disconnectDriveBtn");
+  const clientIdWarning = document.getElementById("clientIdWarning");
+  const breadcrumbEl = document.getElementById("breadcrumb");
+  const driveCountPill = document.getElementById("driveCountPill");
+  const driveBrowseGrid = document.getElementById("driveBrowseGrid");
+  const selectModeBtn = document.getElementById("selectModeBtn");
+  const selectAllBtn = document.getElementById("selectAllBtn");
+  const bulkBar = document.getElementById("bulkBar");
+  const bulkCountLabel = document.getElementById("bulkCountLabel");
+  const bulkCancelBtn = document.getElementById("bulkCancelBtn");
+  const bulkApplyBtn = document.getElementById("bulkApplyBtn");
+
+  const searchInput = document.getElementById("searchInput");
+  const countPill = document.getElementById("countPill");
+  const posterListWrap = document.getElementById("posterListWrap");
+
+  const modalOverlay = document.getElementById("modalOverlay");
+  const modalTitle = document.getElementById("modalTitle");
+  const modalFormFields = document.getElementById("modalFormFields");
+  const posterNameField = document.getElementById("posterNameField");
+  const bulkSummaryField = document.getElementById("bulkSummaryField");
+  const bulkSummaryText = document.getElementById("bulkSummaryText");
+  const posterName = document.getElementById("posterName");
+  const posterUrl = document.getElementById("posterUrl");
+  const posterFile = document.getElementById("posterFile");
+  const previewBox = document.getElementById("previewBox");
+  const uploadProgress = document.getElementById("uploadProgress");
+  const modalSaveBtn = document.getElementById("modalSaveBtn");
+  const modalDeleteBtn = document.getElementById("modalDeleteBtn");
+  const modalCancelBtn = document.getElementById("modalCancelBtn");
+  const autoFetchBtn = document.getElementById("autoFetchBtn");
+  const tmdbResultsPanel = document.getElementById("tmdbResultsPanel");
+  const tmdbResultsGrid = document.getElementById("tmdbResultsGrid");
+  const tmdbResultsBackBtn = document.getElementById("tmdbResultsBackBtn");
+
+  const toastEl = document.getElementById("toast");
+
+  var editingKey = null;
+  var bulkModeItems = null; 
+  var selectMode = false;
+  var selectedItems = {}; 
+  var allPosters = {}; 
+
+  loginBtn.addEventListener("click", doLogin);
+  loginPassword.addEventListener("keydown", function (e) { if (e.key === "Enter") doLogin(); });
+
+  function doLogin() {
+    loginError.classList.remove("show");
+    var email = loginEmail.value.trim();
+    var pass = loginPassword.value;
+    if (!email || !pass) {
+      loginError.textContent = "Email aur password dono bharein.";
+      loginError.classList.add("show");
+      return;
+    }
+    loginBtn.disabled = true;
+    loginBtn.textContent = "Logging in...";
+    auth.signInWithEmailAndPassword(email, pass)
+      .catch(function (err) {
+        loginError.textContent = "Login fail: " + (err.message || "Kuch galat hua");
+        loginError.classList.add("show");
+      })
+      .finally(function () {
+        loginBtn.disabled = false;
+        loginBtn.textContent = "Login";
+      });
+  }
+
+  logoutBtn.addEventListener("click", function () { auth.signOut(); });
+
+  var setupHelpBtn = document.getElementById("setupHelpBtn");
+  var setupHelpPanel = document.getElementById("setupHelpPanel");
+  setupHelpBtn.addEventListener("click", function () {
+    setupHelpPanel.classList.toggle("hidden");
+  });
+
+  auth.onAuthStateChanged(function (user) {
+    if (user) {
+      loginWrap.classList.add("hidden");
+      adminWrap.classList.remove("hidden");
+      attachPosterListener();
+      loadHistory();
+    } else {
+      adminWrap.classList.add("hidden");
+      loginWrap.classList.remove("hidden");
+    }
+  });
+
+  tabsRow.querySelectorAll(".tab-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      tabsRow.querySelectorAll(".tab-btn").forEach(function (b) { b.classList.remove("active"); });
+      btn.classList.add("active");
+      var tab = btn.getAttribute("data-tab");
+      tabBrowse.classList.toggle("hidden", tab !== "browse");
+      tabManage.classList.toggle("hidden", tab !== "manage");
+      tabPush.classList.toggle("hidden", tab !== "push");
+    });
+  });
+
+  var driveAccessToken = null;
+  var tokenClient = null;
+  var driveFolderStack = [{ id: LOCKED_ROOT_FOLDER_ID, name: "My Drive" }];
+
+  if (GOOGLE_CLIENT_ID.indexOf("REPLACE_WITH") === 0) {
+    connectDriveBtn.disabled = true;
+    connectDriveBtn.textContent = "Client ID set nahi hai";
+  } else {
+    clientIdWarning.classList.add("hidden");
+  }
+
+  window.addEventListener("load", function () {
+    var tryInit = setInterval(function () {
+      if (window.google && google.accounts && google.accounts.oauth2) {
+        clearInterval(tryInit);
+        tokenClient = google.accounts.oauth2.initTokenClient({
+          client_id: GOOGLE_CLIENT_ID,
+          scope: DRIVE_SCOPE,
+          callback: function (resp) {
+            if (resp.error) {
+              showToast("Google Drive connect fail: " + resp.error, false);
+              return;
+            }
+            driveAccessToken = resp.access_token;
+            onDriveConnected();
+          }
+        });
+      }
+    }, 300);
+  });
+
+  connectDriveBtn.addEventListener("click", function () {
+    if (!tokenClient) { showToast("Google auth abhi load ho raha hai, thodi der me try karein", false); return; }
+    tokenClient.requestAccessToken();
+  });
+
+  disconnectDriveBtn.addEventListener("click", function () {
+    driveAccessToken = null;
+    driveFolderStack = [{ id: LOCKED_ROOT_FOLDER_ID, name: "My Drive" }];
+    driveConnectState.classList.remove("hidden");
+    driveBrowseState.classList.add("hidden");
+    disconnectDriveBtn.classList.add("hidden");
+    selectAllBtn.classList.add("hidden");
+  });
+
+  function onDriveConnected() {
+    driveConnectState.classList.add("hidden");
+    driveBrowseState.classList.remove("hidden");
+    disconnectDriveBtn.classList.remove("hidden");
+    renderBreadcrumb();
+    loadDriveFolder(driveFolderStack[driveFolderStack.length - 1].id);
+  }
+
+  function driveListFiles(folderId, callback) {
+    var q = encodeURIComponent("'" + folderId + "' in parents and trashed = false");
+    var fields = encodeURIComponent("files(id,name,mimeType)");
+    fetch("https://www.googleapis.com/drive/v3/files?q=" + q + "&fields=" + fields + "&pageSize=200&orderBy=folder,name", {
+      headers: { Authorization: "Bearer " + driveAccessToken }
+    })
+      .then(function (res) {
+        if (res.status === 401) {
+          driveAccessToken = null;
+          showToast("Drive session expire ho gayi, dobara connect karein", false);
+          callback(null);
+          return null;
+        }
+        return res.json();
+      })
+      .then(function (data) { if (data) callback(data.files || []); })
+      .catch(function () { callback(null); });
+  }
+
+  function openDriveFolder(id, name) {
+    driveFolderStack.push({ id: id, name: name });
+    renderBreadcrumb();
+    loadDriveFolder(id);
+  }
+
+  function goDriveBreadcrumb(index) {
+    driveFolderStack = driveFolderStack.slice(0, index + 1);
+    renderBreadcrumb();
+    loadDriveFolder(driveFolderStack[driveFolderStack.length - 1].id);
+  }
+
+  function renderBreadcrumb() {
+    var html = "";
+    driveFolderStack.forEach(function (f, idx) {
+      if (idx > 0) html += '<span class="crumb-sep">›</span>';
+      html += '<span class="crumb" data-idx="' + idx + '">' + escapeHtml(f.name) + '</span>';
+    });
+    breadcrumbEl.innerHTML = html;
+    breadcrumbEl.querySelectorAll(".crumb").forEach(function (el) {
+      el.addEventListener("click", function () { goDriveBreadcrumb(parseInt(el.getAttribute("data-idx"), 10)); });
+    });
+  }
+
+  function loadDriveFolder(folderId) {
+    driveBrowseGrid.innerHTML = '<div class="empty-state"><div class="e">\u23F3</div><div class="t">Loading...</div></div>';
+    driveListFiles(folderId, function (files) {
+      if (!files) {
+        driveBrowseGrid.innerHTML = '<div class="empty-state"><div class="e">\u26A0\uFE0F</div>'
+          + '<div class="t">Load nahi ho paya</div><div class="m">"Disconnect Drive" karke dubara connect karein.</div></div>';
+        driveCountPill.textContent = "0 items";
+        currentFolderFiles = [];
+        return;
+      }
+      currentFolderFiles = files;
+      renderDriveBrowse(files);
+      updateSelectAllButtonState();
+    });
+  }
+
+  function isVideoFile(name) {
+    var lower = (name || "").toLowerCase();
+    return lower.endsWith(".mkv") || lower.endsWith(".mp4") || lower.endsWith(".avi") || lower.endsWith(".mov");
+  }
+
+  function renderDriveBrowse(files) {
+    driveCountPill.textContent = files.length + " item" + (files.length === 1 ? "" : "s");
+
+    if (files.length === 0) {
+      driveBrowseGrid.innerHTML = '<div class="empty-state"><div class="e">\uD83D\uDCED</div><div class="t">Ye folder khali hai</div></div>';
+      return;
+    }
+
+    var html = '<div class="fm-grid">';
+    files.forEach(function (f) {
+      var isFolder = f.mimeType === "application/vnd.google-apps.folder";
+      var key = posterKeyEncode(f.name);
+      var existing = allPosters[key];
+      var placeholderIcon = isFolder ? "\uD83D\uDCC1" : (isVideoFile(f.name) ? "\uD83C\uDFAC" : "\uD83D\uDCE6");
+      var isSelected = !!selectedItems[f.id];
+
+      html += '<div class="fm-card' + (selectMode ? " select-mode" : "") + (isSelected ? " selected" : "")
+        + '" data-id="' + f.id + '" data-name="' + escapeHtml(f.name) + '" data-folder="' + isFolder + '">'
+        + '<div class="fm-thumb" data-act="' + (isFolder ? "open" : "poster") + '">'
+        + (existing && existing.url ? '<img src="' + escapeHtml(existing.url) + '" loading="lazy">' : '<div class="ph">' + placeholderIcon + '</div>')
+        + (existing ? '<span class="poster-badge">\u2713</span>' : '')
+        + '<span class="select-check">\u2713</span>'
+        + '</div>'
+        + '<div class="fm-info">'
+        + '<div class="fm-name">' + escapeHtml(f.name) + '</div>'
+        + '<div class="fm-actions">'
+        + (isFolder ? '<button data-act="open">Open</button>' : '<button data-act="poster" class="poster-btn">' + (existing ? "Edit poster" : "Set poster") + '</button>')
+        + (isFolder ? '<button data-act="poster" class="poster-btn">' + (existing ? "Poster" : "+Poster") + '</button>' : '')
+        + '</div></div></div>';
+    });
+    html += '</div>';
+    driveBrowseGrid.innerHTML = html;
+
+    driveBrowseGrid.querySelectorAll(".fm-card").forEach(function (card) {
+      var id = card.getAttribute("data-id");
+      var name = card.getAttribute("data-name");
+
+      if (selectMode) {
+        card.addEventListener("click", function () {
+          if (selectedItems[id]) {
+            delete selectedItems[id];
+            card.classList.remove("selected");
+          } else {
+            selectedItems[id] = name;
+            card.classList.add("selected");
+          }
+          updateBulkBar();
+          updateSelectAllButtonState();
+        });
+        return; 
+      }
+
+      card.querySelectorAll('[data-act="open"]').forEach(function (el) {
+        el.addEventListener("click", function () { openDriveFolder(id, name); });
+      });
+      card.querySelectorAll('[data-act="poster"]').forEach(function (el) {
+        el.addEventListener("click", function (e) {
+          e.stopPropagation();
+          openPosterModal(name);
+        });
+      });
+    });
+
+    var needsResolve = files.filter(function (f) { return !allPosters[posterKeyEncode(f.name)]; });
+    resolvePostersForCards(needsResolve);
+  }
+
+  // ============================================================
+  // Bulk selection with Select All / Deselect All
+  // ============================================================
+  selectModeBtn.addEventListener("click", function () {
+    selectMode = !selectMode;
+    selectModeBtn.textContent = selectMode ? "\u2715 Selection band karein" : "\u2611\uFE0F Select multiple";
+    selectAllBtn.classList.toggle("hidden", !selectMode);
+    if (!selectMode) {
+      selectedItems = {};
+    }
+    updateBulkBar();
+    renderDriveBrowse(currentFolderFiles);
+    updateSelectAllButtonState();
+  });
+
+  selectAllBtn.addEventListener("click", function () {
+    if (currentFolderFiles.length === 0) return;
+    
+    var allSelected = currentFolderFiles.every(function(f) { return !!selectedItems[f.id]; });
+    
+    if (allSelected) {
+      currentFolderFiles.forEach(function(f) {
+        delete selectedItems[f.id];
+      });
+    } else {
+      currentFolderFiles.forEach(function(f) {
+        selectedItems[f.id] = f.name;
+      });
+    }
+    
+    updateBulkBar();
+    renderDriveBrowse(currentFolderFiles);
+    updateSelectAllButtonState();
+  });
+
+  function updateSelectAllButtonState() {
+    if (!selectMode || currentFolderFiles.length === 0) return;
+    var allSelected = currentFolderFiles.every(function(f) { return !!selectedItems[f.id]; });
+    selectAllBtn.textContent = allSelected ? "🟩 Deselect All" : "☑️ Select All";
+  }
+
+  bulkCancelBtn.addEventListener("click", function () {
+    selectedItems = {};
+    updateBulkBar();
+    updateSelectAllButtonState();
+    driveBrowseGrid.querySelectorAll(".fm-card.selected").forEach(function (c) { c.classList.remove("selected"); });
+  });
+
+  function updateBulkBar() {
+    var count = Object.keys(selectedItems).length;
+    bulkCountLabel.textContent = count + " selected";
+    bulkBar.classList.toggle("hidden", !selectMode || count === 0);
+  }
+
+  bulkApplyBtn.addEventListener("click", function () {
+    var items = Object.keys(selectedItems).map(function (id) { return { id: id, name: selectedItems[id] }; });
+    if (items.length === 0) return;
+    openBulkPosterModal(items);
+  });
+
+  // ============================================================
+  // Firebase posters — live list 
+  // ============================================================
+  function attachPosterListener() {
+    db.ref("posters").on("value", function (snapshot) {
+      allPosters = snapshot.val() || {};
+      renderPosterList();
+      if (!driveBrowseState.classList.contains("hidden") && driveAccessToken) {
+        loadDriveFolder(driveFolderStack[driveFolderStack.length - 1].id);
+      }
+    });
+  }
+
+  function renderPosterList() {
+    var query = searchInput.value.trim().toLowerCase();
+    var keys = Object.keys(allPosters).filter(function (k) {
+      var entry = allPosters[k];
+      if (!entry) return false;
+      if (!query) return true;
+      return (entry.name || "").toLowerCase().indexOf(query) !== -1;
+    });
+
+    countPill.textContent = keys.length + " poster" + (keys.length === 1 ? "" : "s");
+
+    if (keys.length === 0) {
+      posterListWrap.innerHTML = '<div class="empty-state"><div class="e">\uD83C\uDFA8</div>'
+        + '<div class="t">' + (Object.keys(allPosters).length === 0 ? "Abhi koi poster nahi" : "Kuch nahi mila") + '</div>'
+        + '<div class="m">' + (Object.keys(allPosters).length === 0 ? '"Browse Drive" tab se poster lagayein.' : "Alag naam se search karein.") + '</div></div>';
+      return;
+    }
+
+    keys.sort(function (a, b) { return (allPosters[b].updatedAt || 0) - (allPosters[a].updatedAt || 0); });
+
+    var html = '<div class="poster-grid">';
+    keys.forEach(function (key) {
+      var entry = allPosters[key];
+      html += '<div class="fm-card">'
+        + '<div class="fm-thumb">' + (entry.url ? '<img src="' + escapeHtml(entry.url) + '" loading="lazy">' : '<div class="ph">\uD83C\uDFAC</div>') + '</div>'
+        + '<div class="fm-info"><div class="fm-name">' + escapeHtml(entry.name || key) + '</div>'
+        + '<div class="fm-actions">'
+        + '<button data-act="edit" data-key="' + key + '">Edit</button>'
+        + '<button data-act="del" data-key="' + key + '" style="background:rgba(255,77,77,0.12);color:var(--danger);">Delete</button>'
+        + '</div></div></div>';
+    });
+    html += '</div>';
+    posterListWrap.innerHTML = html;
+
+    posterListWrap.querySelectorAll('[data-act="edit"]').forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var entry = allPosters[btn.getAttribute("data-key")];
+        if (entry) openPosterModal(entry.name, btn.getAttribute("data-key"));
+      });
+    });
+    posterListWrap.querySelectorAll('[data-act="del"]').forEach(function (btn) {
+      btn.addEventListener("click", function () { deleteEntry(btn.getAttribute("data-key")); });
+    });
+  }
+  searchInput.addEventListener("input", renderPosterList);
+
+  // ============================================================
+  // Poster edit modal 
+  // ============================================================
+  function openPosterModal(name, explicitKey) {
+    bulkModeItems = null;
+    editingKey = explicitKey || posterKeyEncode(name);
+    var existing = allPosters[editingKey];
+    var tmdbFallbackUrl = tmdbPosterCache.hasOwnProperty(name) ? tmdbPosterCache[name] : null;
+
+    modalTitle.textContent = "Edit poster";
+    posterNameField.classList.remove("hidden");
+    bulkSummaryField.classList.add("hidden");
+    posterName.removeAttribute("readonly");
+    posterName.value = name;
+    posterUrl.value = existing ? (existing.url || "") : (tmdbFallbackUrl || "");
+    posterFile.value = "";
+    uploadProgress.style.display = "none";
+    updatePreview(posterUrl.value);
+    modalDeleteBtn.classList.toggle("hidden", !existing);
+    showModalForm();
+    modalOverlay.classList.add("active");
+  }
+
+  function openBulkPosterModal(items) {
+    bulkModeItems = items;
+    editingKey = null;
+
+    modalTitle.textContent = "Poster set karein (" + items.length + " items)";
+    posterNameField.classList.add("hidden");
+    bulkSummaryField.classList.remove("hidden");
+    var namesPreview = items.slice(0, 6).map(function (i) { return "\u2022 " + i.name; }).join("<br>");
+    if (items.length > 6) namesPreview += "<br>...aur " + (items.length - 6) + " aur";
+    bulkSummaryText.innerHTML = namesPreview;
+
+    posterUrl.value = "";
+    posterFile.value = "";
+    uploadProgress.style.display = "none";
+    updatePreview("");
+    modalDeleteBtn.classList.add("hidden");
+    showModalForm();
+    modalOverlay.classList.add("active");
+  }
+
+  function closePosterModal() {
+    modalOverlay.classList.remove("active");
+    editingKey = null;
+    bulkModeItems = null;
+  }
+  modalCancelBtn.addEventListener("click", closePosterModal);
+  modalOverlay.addEventListener("click", function (e) { if (e.target === modalOverlay) closePosterModal(); });
+
+  function onUrlInputChange() { updatePreview(posterUrl.value.trim()); }
+
+  function updatePreview(url) {
+    previewBox.innerHTML = url ? '<img src="' + escapeHtml(url) + '">' : "No image";
+  }
+
+  posterFile.addEventListener("change", function () {
+    var file = posterFile.files[0];
+    if (!file) return;
+    var safeName = Date.now() + "_" + file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    var ref = storage.ref("posters/" + safeName);
+    var task = ref.put(file);
+
+    uploadProgress.style.display = "block";
+    uploadProgress.textContent = "Uploading... 0%";
+
+    task.on("state_changed", function (snap) {
+      var pct = Math.round((snap.bytesTransferred / snap.totalBytes) * 100);
+      uploadProgress.textContent = "Uploading... " + pct + "%";
+    }, function (err) {
+      uploadProgress.textContent = "Upload fail ho gaya";
+      showToast("Upload fail: " + err.message, false);
+    }, function () {
+      task.snapshot.ref.getDownloadURL().then(function (url) {
+        posterUrl.value = url;
+        updatePreview(url);
+        uploadProgress.textContent = "Upload complete \u2713";
+        setTimeout(function () { uploadProgress.style.display = "none"; }, 1200);
+      });
+    });
+  });
+
+  function showModalForm() {
+    tmdbResultsPanel.classList.add("hidden");
+    modalFormFields.classList.remove("hidden");
+  }
+  function showTmdbResults() {
+    modalFormFields.classList.add("hidden");
+    tmdbResultsPanel.classList.remove("hidden");
+  }
+
+  autoFetchBtn.addEventListener("click", function () {
+    var nameForSearch = bulkModeItems ? bulkModeItems[0].name : posterName.value.trim();
+    if (!nameForSearch) { showToast("Pehle naam daalein", false); return; }
+
+    tmdbResultsGrid.innerHTML = '<div class="empty-state"><div class="e">\u23F3</div><div class="t">Dhoond rahe hain...</div></div>';
+    showTmdbResults();
+
+    var parsed = tmdbParseFilename(nameForSearch);
+    tmdbSearchAll(parsed.title, parsed.year, function (results) {
+      renderTmdbResults(results);
+    });
+  });
+
+  tmdbResultsBackBtn.addEventListener("click", showModalForm);
 
   function tmdbSearchAll(title, year, callback) {
     var movieUrl = "https://api.themoviedb.org/3/search/movie?api_key=" + TMDB_API_KEY
@@ -450,286 +1277,458 @@
     var tvUrl = "https://api.themoviedb.org/3/search/tv?api_key=" + TMDB_API_KEY + "&query=" + encodeURIComponent(title);
 
     Promise.all([
-      fetch(movieUrl).then(r => r.json()).catch(() => ({ results: [] })),
-      fetch(tvUrl).then(r => r.json()).catch(() => ({ results: [] }))
+      fetch(movieUrl).then(function (r) { return r.json(); }).catch(function () { return { results: [] }; }),
+      fetch(tvUrl).then(function (r) { return r.json(); }).catch(function () { return { results: [] }; })
     ]).then(function (resArr) {
-      var movieResults = (resArr[0].results || []).slice(0, 8).map(m => ({
-        type: "movie",
-        title: m.title,
-        year: m.release_date ? m.release_date.substring(0, 4) : null,
-        posterUrl: m.poster_path ? TMDB_IMAGE_BASE + m.poster_path : null
-      }));
-      var tvResults = (resArr[1].results || []).slice(0, 8).map(t => ({
-        type: "tv",
-        title: t.name,
-        year: t.first_air_date ? t.first_air_date.substring(0, 4) : null,
-        posterUrl: t.poster_path ? TMDB_IMAGE_BASE + t.poster_path : null
-      }));
-      var combined = movieResults.concat(tvResults).filter(r => r.posterUrl);
-      callback(combined);
-    }).catch(() => callback([]));
-  }
-
-  // ============================================================
-  // AUTH & TAB NAVIGATION
-  // ============================================================
-  auth.onAuthStateChanged(user => {
-    if (user) {
-      document.getElementById("loginWrap").classList.add("hidden");
-      document.getElementById("adminWrap").classList.remove("hidden");
-      attachPosterListener();
-      loadNotificationHistory();
-    } else {
-      document.getElementById("adminWrap").classList.add("hidden");
-      document.getElementById("loginWrap").classList.remove("hidden");
-    }
-  });
-
-  document.getElementById("loginBtn").addEventListener("click", () => {
-    auth.signInWithEmailAndPassword(
-      document.getElementById("loginEmail").value.trim(),
-      document.getElementById("loginPassword").value
-    ).catch(err => {
-      document.getElementById("loginError").textContent = err.message;
-      document.getElementById("loginError").classList.add("show");
-    });
-  });
-
-  document.getElementById("logoutBtn").addEventListener("click", () => auth.signOut());
-
-  document.querySelectorAll("#tabsRow .tab-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      document.querySelectorAll("#tabsRow .tab-btn").forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-      const tab = btn.getAttribute("data-tab");
-      document.getElementById("tabBrowse").classList.toggle("hidden", tab !== "browse");
-      document.getElementById("tabManage").classList.toggle("hidden", tab !== "manage");
-      document.getElementById("tabPush").classList.toggle("hidden", tab !== "push");
-    });
-  });
-
-  // ============================================================
-  // PUSH NOTIFICATION SYSTEM (ENHANCED WITH SMART TMDB)
-  // ============================================================
-  var pushSelectedPoster = null;
-  var pushSearchTimer = null;
-
-  function setPushPosterMode(mode) {
-    document.getElementById("btnPushModeTmdb").classList.toggle("active", mode === 'tmdb');
-    document.getElementById("btnPushModeImdb").classList.toggle("active", mode === 'imdb');
-    document.getElementById("btnPushModeUrl").classList.toggle("active", mode === 'url');
-
-    document.getElementById("pushTmdbContainer").style.display = mode === 'tmdb' ? 'block' : 'none';
-    document.getElementById("pushImdbContainer").style.display = mode === 'imdb' ? 'block' : 'none';
-    document.getElementById("pushUrlContainer").style.display = mode === 'url' ? 'block' : 'none';
-  }
-
-  // Smart TMDB Search for Push Notification
-  document.getElementById("pushTmdbInput").addEventListener("input", function() {
-    var raw = this.value.trim();
-    clearTimeout(pushSearchTimer);
-    if (!raw) { document.getElementById("pushTmdbResults").innerHTML = ""; return; }
-
-    pushSearchTimer = setTimeout(() => {
-      var parsed = tmdbParseFilename(raw);
-      document.getElementById("pushTmdbResults").innerHTML = '<div style="font-size:12px; color:var(--muted)">Searching...</div>';
-      tmdbSearchAll(parsed.title, parsed.year, results => {
-        renderPushTmdbResults(results);
+      var movieResults = (resArr[0].results || []).slice(0, 10).map(function (m) {
+        return {
+          type: "movie",
+          title: m.title,
+          year: m.release_date ? m.release_date.substring(0, 4) : null,
+          posterUrl: m.poster_path ? TMDB_IMAGE_BASE + m.poster_path : null
+        };
       });
-    }, 300);
-  });
+      var tvResults = (resArr[1].results || []).slice(0, 10).map(function (t) {
+        return {
+          type: "tv",
+          title: t.name,
+          year: t.first_air_date ? t.first_air_date.substring(0, 4) : null,
+          posterUrl: t.poster_path ? TMDB_IMAGE_BASE + t.poster_path : null
+        };
+      });
+      var combined = movieResults.concat(tvResults).filter(function (r) { return r.posterUrl; });
+      callback(combined);
+    }).catch(function () { callback([]); });
+  }
 
-  function renderPushTmdbResults(results) {
-    var grid = document.getElementById("pushTmdbResults");
+  function renderTmdbResults(results) {
     if (!results || results.length === 0) {
-      grid.innerHTML = '<div style="font-size:12px; color:var(--muted)">No poster results found</div>';
+      tmdbResultsGrid.innerHTML = '<div class="empty-state"><div class="e">\uD83D\uDD0D</div>'
+        + '<div class="t">Kuch nahi mila</div><div class="m">Naam thoda alag likh ke (Name field me) dubara try karein.</div></div>';
       return;
     }
     var html = "";
-    results.forEach((r, idx) => {
-      html += '<div class="tmdb-result-card" onclick="selectPushPoster(\'' + r.posterUrl + '\', \'' + r.title.replace(/'/g, "\\'") + '\')">'
-        + '<div class="tmdb-result-thumb"><img src="' + r.posterUrl + '"></div>'
-        + '<div class="tmdb-result-label">' + r.title + '<br><span class="tmdb-type-tag">' + r.type.toUpperCase() + '</span></div>'
+    results.forEach(function (r, idx) {
+      html += '<div class="tmdb-result-card" data-idx="' + idx + '">'
+        + '<div class="tmdb-result-thumb"><img src="' + escapeHtml(r.posterUrl) + '" loading="lazy"></div>'
+        + '<div class="tmdb-result-label">' + escapeHtml(r.title) + (r.year ? " (" + r.year + ")" : "")
+        + '<br><span class="tmdb-type-tag">' + (r.type === "tv" ? "TV" : "Movie") + '</span></div>'
         + '</div>';
     });
-    grid.innerHTML = html;
-  }
+    tmdbResultsGrid.innerHTML = html;
 
-  // IMDb Auto Search fallback
-  document.getElementById("pushImdbInput").addEventListener("input", function() {
-    var q = this.value.trim();
-    clearTimeout(pushSearchTimer);
-    if (q.length < 2) return;
-    pushSearchTimer = setTimeout(() => {
-      fetch("https://v3.sg.media-imdb.com/suggestion/x/a/" + encodeURIComponent(q) + ".json")
-        .then(r => r.json()).then(data => {
-          var items = (data.d || []).filter(i => i.i && i.i.imageUrl);
-          var html = "";
-          items.forEach(i => {
-            html += '<div class="tmdb-result-card" onclick="selectPushPoster(\'' + i.i.imageUrl + '\', \'' + i.l.replace(/'/g, "\\'") + '\')">'
-              + '<div class="tmdb-result-thumb"><img src="' + i.i.imageUrl + '"></div>'
-              + '<div class="tmdb-result-label">' + i.l + '</div></div>';
-          });
-          document.getElementById("pushImdbResults").innerHTML = html;
-        });
-    }, 300);
-  });
-
-  document.getElementById("btnPushAttachUrl").addEventListener("click", () => {
-    var url = document.getElementById("pushDirectUrlInput").value.trim();
-    if (url) selectPushPoster(url, "Custom Image Link");
-  });
-
-  function selectPushPoster(url, title) {
-    pushSelectedPoster = { url: url, title: title };
-    document.getElementById("pushSelectedPosterImg").src = url;
-    document.getElementById("pushSelectedPosterTitle").textContent = title;
-    document.getElementById("pushSelectedPosterBox").style.display = "flex";
-    if (!document.getElementById("pushTitleInput").value && title !== "Custom Image Link") {
-      document.getElementById("pushTitleInput").value = title;
-    }
-  }
-
-  document.getElementById("btnRemovePushPoster").addEventListener("click", () => {
-    pushSelectedPoster = null;
-    document.getElementById("pushSelectedPosterBox").style.display = "none";
-  });
-
-  document.getElementById("btnSendNotification").addEventListener("click", function() {
-    var title = document.getElementById("pushTitleInput").value.trim();
-    var body = document.getElementById("pushBodyInput").value.trim();
-    if (!title && !body) { showToast("Enter title or body", false); return; }
-
-    var payload = { title: title, body: body, ts: Date.now() };
-    if (pushSelectedPoster) payload.poster = pushSelectedPoster.url;
-
-    db.ref("notifications").push(payload).then(() => {
-      showToast("Notification sent successfully!", true);
-      document.getElementById("pushTitleInput").value = "";
-      document.getElementById("pushBodyInput").value = "";
-      pushSelectedPoster = null;
-      document.getElementById("pushSelectedPosterBox").style.display = "none";
-      loadNotificationHistory();
-    }).catch(err => showToast("Fail: " + err.message, false));
-  });
-
-  function loadNotificationHistory() {
-    db.ref("notifications").limitToLast(15).once("value", snap => {
-      var data = snap.val() || {};
-      var list = Object.keys(data).map(k => ({ id: k, ...data[k] })).sort((a,b) => b.ts - a.ts);
-      var html = "";
-      list.forEach(item => {
-        html += '<div class="history-card">'
-          + (item.poster ? '<img src="' + item.poster + '">' : '<div style="width:42px;height:60px;background:#12121a;"></div>')
-          + '<div class="history-details"><h4>' + (item.title || "No Title") + '</h4><p>' + (item.body || "") + '</p></div>'
-          + '<button class="btn btn-danger" style="padding:4px 8px;font-size:11px;" onclick="deleteNotification(\'' + item.id + '\')">Delete</button>'
-          + '</div>';
+    tmdbResultsGrid.querySelectorAll(".tmdb-result-card").forEach(function (card) {
+      card.addEventListener("click", function () {
+        var idx = parseInt(card.getAttribute("data-idx"), 10);
+        var r = results[idx];
+        posterUrl.value = r.posterUrl;
+        updatePreview(r.posterUrl);
+        showModalForm();
+        showToast("Poster select ho gaya - ab \"Save\" dabayein", true);
       });
-      document.getElementById("notificationHistoryList").innerHTML = html || '<div style="color:var(--muted);font-size:12px;">No notifications sent yet.</div>';
     });
   }
 
-  function deleteNotification(id) {
-    db.ref("notifications/" + id).remove().then(() => loadNotificationHistory());
-  }
+  modalSaveBtn.addEventListener("click", function () {
+    var url = posterUrl.value.trim();
+    if (!url) { showToast("Poster URL daalein ya image upload karein", false); return; }
 
-  // ============================================================
-  // POSTERS & DRIVE MANAGEMENT
-  // ============================================================
-  var allPosters = {};
-  function posterKeyEncode(name) {
-    return (name || "").trim().toLowerCase().replace(/\s+/g, " ").replace(/[.#$\[\]\/]/g, ch => "_" + ch.charCodeAt(0) + "_");
-  }
+    if (bulkModeItems) {
+      saveBulkPosters(bulkModeItems, url);
+      return;
+    }
 
-  function attachPosterListener() {
-    db.ref("posters").on("value", snap => {
-      allPosters = snap.val() || {};
-      renderPosterList();
+    var name = posterName.value.trim();
+    if (!name) { showToast("Naam daalein", false); return; }
+
+    var key = editingKey || posterKeyEncode(name);
+    modalSaveBtn.disabled = true;
+    modalSaveBtn.textContent = "Saving...";
+
+    var settled = false;
+
+    var timeoutId = setTimeout(function () {
+      if (settled) return;
+      settled = true;
+      modalSaveBtn.disabled = false;
+      modalSaveBtn.textContent = "Save";
+      showToast("Save me time lag raha hai - Firebase Database Rules check karein", false);
+    }, 10000);
+
+    db.ref("posters/" + key).set({ name: name, url: url, updatedAt: Date.now() })
+      .then(function () {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        modalSaveBtn.disabled = false;
+        modalSaveBtn.textContent = "Save";
+        showToast("Poster save ho gaya \u2713 App me bhi update ho jaayega", true);
+        closePosterModal();
+      })
+      .catch(function (err) {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        modalSaveBtn.disabled = false;
+        modalSaveBtn.textContent = "Save";
+        console.error("Poster save failed:", err);
+        var isPermissionIssue = (err && err.code === "PERMISSION_DENIED");
+        showToast(
+          isPermissionIssue
+            ? "Save fail: Firebase Database Rules abhi tak set nahi hui hai"
+            : "Save fail: " + (err && err.message ? err.message : "Kuch galat hua"),
+          false
+        );
+      });
+  });
+
+  function saveBulkPosters(items, url) {
+    var updates = {};
+    var now = Date.now();
+    items.forEach(function (item) {
+      var key = posterKeyEncode(item.name);
+      updates["posters/" + key] = { name: item.name, url: url, updatedAt: now };
     });
+
+    modalSaveBtn.disabled = true;
+    modalSaveBtn.textContent = "Saving...";
+    var settled = false;
+
+    var timeoutId = setTimeout(function () {
+      if (settled) return;
+      settled = true;
+      modalSaveBtn.disabled = false;
+      modalSaveBtn.textContent = "Save";
+      showToast("Save me time lag raha hai - Firebase Database Rules check karein", false);
+    }, 15000);
+
+    db.ref().update(updates)
+      .then(function () {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        modalSaveBtn.disabled = false;
+        modalSaveBtn.textContent = "Save";
+        showToast(items.length + " items ka poster set ho gaya \u2713", true);
+
+        selectedItems = {};
+        selectMode = false;
+        selectModeBtn.textContent = "\u2611\uFE0F Select multiple";
+        selectAllBtn.classList.add("hidden");
+        updateBulkBar();
+        closePosterModal();
+      })
+      .catch(function (err) {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        modalSaveBtn.disabled = false;
+        modalSaveBtn.textContent = "Save";
+        console.error("Bulk poster save failed:", err);
+        var isPermissionIssue = (err && err.code === "PERMISSION_DENIED");
+        showToast(
+          isPermissionIssue
+            ? "Save fail: Firebase Database Rules abhi tak set nahi hui hai"
+            : "Save fail: " + (err && err.message ? err.message : "Kuch galat hua"),
+          false
+        );
+      });
   }
 
-  function renderPosterList() {
-    var query = document.getElementById("searchInput").value.trim().toLowerCase();
-    var keys = Object.keys(allPosters).filter(k => (allPosters[k].name || "").toLowerCase().includes(query));
-    var html = '<div class="poster-grid">';
-    keys.forEach(k => {
-      var entry = allPosters[k];
-      html += '<div class="fm-card"><div class="fm-thumb"><img src="' + entry.url + '"></div>'
-        + '<div class="fm-info"><div class="fm-name">' + entry.name + '</div></div></div>';
+  modalDeleteBtn.addEventListener("click", function () {
+    if (!editingKey) return;
+    if (!confirm("Ye custom poster hata dein?")) return;
+    db.ref("posters/" + editingKey).remove().then(function () {
+      showToast("Poster hata diya gaya", true);
+      closePosterModal();
+    }).catch(function (err) {
+      console.error("Delete failed:", err);
+      var isPermissionIssue = (err && err.code === "PERMISSION_DENIED");
+      showToast(
+        isPermissionIssue
+          ? "Delete fail: Firebase Database Rules abhi tak set nahi hui hai"
+          : "Delete fail: " + (err && err.message ? err.message : "Kuch galat hua"),
+        false
+      );
     });
-    html += '</div>';
-    document.getElementById("posterListWrap").innerHTML = html;
+  });
+
+  function deleteEntry(key) {
+    var entry = allPosters[key];
+    if (!entry) return;
+    if (!confirm('"' + entry.name + '" ka custom poster delete karein?')) return;
+    db.ref("posters/" + key).remove().then(function () { showToast("Delete ho gaya", true); })
+      .catch(function (err) {
+        console.error("Delete failed:", err);
+        var isPermissionIssue = (err && err.code === "PERMISSION_DENIED");
+        showToast(
+          isPermissionIssue
+            ? "Delete fail: Firebase Database Rules abhi tak set nahi hui hai"
+            : "Delete fail: " + (err && err.message ? err.message : "Kuch galat hua"),
+          false
+        );
+      });
   }
 
   // ============================================================
-  // DRIVE OAUTH DISPATCH
+  // PUSH NOTIFICATION PORTAL LOGIC (EXACT UNTOUCHED)
   // ============================================================
-  var driveAccessToken = null;
-  var tokenClient = null;
+  var LS_URL_KEY = "dflix_admin_db_url";
+  var LS_SECRET_KEY = "dflix_admin_db_secret";
+  var DEFAULT_DB_URL = "https://dflix-7b2d2-default-rtdb.firebaseio.com";
 
-  window.addEventListener("load", () => {
-    var checkGoogle = setInterval(() => {
-      if (window.google && google.accounts && google.accounts.oauth2) {
-        clearInterval(checkGoogle);
-        tokenClient = google.accounts.oauth2.initTokenClient({
-          client_id: GOOGLE_CLIENT_ID,
-          scope: DRIVE_SCOPE,
-          callback: (resp) => {
-            if (!resp.error) {
-              driveAccessToken = resp.access_token;
-              document.getElementById("driveConnectState").classList.add("hidden");
-              document.getElementById("driveBrowseState").classList.remove("hidden");
-              loadDriveFolder(LOCKED_ROOT_FOLDER_ID);
-            }
+  var dbUrlInput = document.getElementById("dbUrlInput");
+  var dbSecretInput = document.getElementById("dbSecretInput");
+  var configStatus = document.getElementById("configStatus");
+  
+  var imdbSearchInput = document.getElementById("imdbSearchInput");
+  var imdbResults = document.getElementById("imdbResults");
+  var tmdbSearchInput = document.getElementById("tmdbSearchInput");
+  var tmdbResults = document.getElementById("tmdbResults");
+  var directUrlInput = document.getElementById("directUrlInput");
+  var btnAttachUrl = document.getElementById("btnAttachUrl");
+
+  var selectedPosterBox = document.getElementById("selectedPosterBox");
+  var selectedPosterImg = document.getElementById("selectedPosterImg");
+  var selectedPosterTitle = document.getElementById("selectedPosterTitle");
+  
+  var titleInput = document.getElementById("titleInput");
+  var bodyInput = document.getElementById("bodyInput");
+  var sendStatus = document.getElementById("sendStatus");
+  var historyList = document.getElementById("historyList");
+
+  var selectedPoster = null;
+  var searchTimer = null;
+
+  function getDbUrl() { return (localStorage.getItem(LS_URL_KEY) || DEFAULT_DB_URL).replace(/\/$/, ""); }
+  function getDbSecret() { return localStorage.getItem(LS_SECRET_KEY) || ""; }
+
+  dbUrlInput.value = getDbUrl();
+  dbSecretInput.value = getDbSecret();
+
+  document.getElementById("btnSaveConfig").addEventListener("click", function () {
+    localStorage.setItem(LS_URL_KEY, dbUrlInput.value.trim().replace(/\/$/, ""));
+    localStorage.setItem(LS_SECRET_KEY, dbSecretInput.value.trim());
+    configStatus.className = "status-text ok";
+    configStatus.textContent = "Saved configuration successfully.";
+  });
+
+  /* Mode Switcher */
+  function setPosterMode(mode) {
+    document.getElementById("btnModeImdb").classList.toggle("active", mode === 'imdb');
+    document.getElementById("btnModeTmdb").classList.toggle("active", mode === 'tmdb');
+    document.getElementById("btnModeUrl").classList.toggle("active", mode === 'url');
+
+    document.getElementById("modeImdbContainer").style.display = mode === 'imdb' ? 'block' : 'none';
+    document.getElementById("modeTmdbContainer").style.display = mode === 'tmdb' ? 'block' : 'none';
+    document.getElementById("modeUrlContainer").style.display = mode === 'url' ? 'flex' : 'none';
+  }
+
+  /* IMDb Search Logic */
+  imdbSearchInput.addEventListener("input", function() {
+    var q = imdbSearchInput.value.trim();
+    clearTimeout(searchTimer);
+    if (q.length < 2) { imdbResults.innerHTML = ""; return; }
+    searchTimer = setTimeout(function () { fetchIMDb(q); }, 300);
+  });
+
+  function fetchIMDb(query) {
+    imdbResults.innerHTML = '<div style="grid-column:1/-1; font-size:12px; color:var(--text-muted)">Searching IMDb...</div>';
+    
+    var cleanQuery = query.toLowerCase().replace(/[^a-z0-9]/g, '');
+    var firstChar = cleanQuery.charAt(0) || 'a';
+    var url = "https://v3.sg.media-imdb.com/suggestion/x/" + firstChar + "/" + encodeURIComponent(cleanQuery) + ".json";
+
+    fetch(url)
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        var items = data.d || [];
+        var posters = [];
+        
+        items.forEach(function(item) {
+          if (item.i && item.i.imageUrl) {
+            posters.push({
+              title: item.l + (item.y ? " (" + item.y + ")" : ""),
+              poster: item.i.imageUrl
+            });
           }
         });
-      }
-    }, 300);
-  });
 
-  document.getElementById("connectDriveBtn").addEventListener("click", () => tokenClient && tokenClient.requestAccessToken());
-
-  function loadDriveFolder(folderId) {
-    fetch("https://www.googleapis.com/drive/v3/files?q='" + folderId + "'+in+parents+and+trashed=false&fields=files(id,name,mimeType)", {
-      headers: { Authorization: "Bearer " + driveAccessToken }
-    }).then(r => r.json()).then(data => {
-      var files = data.files || [];
-      var html = '<div class="fm-grid">';
-      files.forEach(f => {
-        var isFolder = f.mimeType === "application/vnd.google-apps.folder";
-        html += '<div class="fm-card"><div class="fm-thumb" onclick="' + (isFolder ? "loadDriveFolder('" + f.id + "')" : "openModalForDrive('" + f.name.replace(/'/g, "\\'") + "')") + '"><div class="ph">' + (isFolder ? "📁" : "🎬") + '</div></div>'
-          + '<div class="fm-info"><div class="fm-name">' + f.name + '</div></div></div>';
+        renderGridResults(imdbResults, posters);
+      })
+      .catch(function() {
+        imdbResults.innerHTML = '<div style="grid-column:1/-1; font-size:12px; color:var(--text-muted)">Could not fetch from IMDb. Try TMDB.</div>';
       });
-      html += '</div>';
-      document.getElementById("driveBrowseGrid").innerHTML = html;
-    });
   }
 
-  // ============================================================
-  // MODAL HANDLERS
-  // ============================================================
-  function openModalForDrive(name) {
-    document.getElementById("posterName").value = name;
-    document.getElementById("modalOverlay").classList.add("active");
-  }
-  document.getElementById("modalCancelBtn").addEventListener("click", () => document.getElementById("modalOverlay").classList.remove("active"));
-
-  document.getElementById("modalSaveBtn").addEventListener("click", () => {
-    var name = document.getElementById("posterName").value.trim();
-    var url = document.getElementById("posterUrl").value.trim();
-    if (!name || !url) return;
-    db.ref("posters/" + posterKeyEncode(name)).set({ name: name, url: url, updatedAt: Date.now() }).then(() => {
-      showToast("Poster saved!", true);
-      document.getElementById("modalOverlay").classList.remove("active");
-    });
+  /* TMDB Search Logic (Connected with Smart Filename Cleaner) */
+  tmdbSearchInput.addEventListener("input", function () {
+    var q = tmdbSearchInput.value.trim();
+    clearTimeout(searchTimer);
+    if (q.length < 2) { tmdbResults.innerHTML = ""; return; }
+    searchTimer = setTimeout(function () { fetchTMDB(q); }, 300);
   });
 
+  function fetchTMDB(rawQuery) {
+    tmdbResults.innerHTML = '<div style="grid-column:1/-1; font-size:12px; color:var(--text-muted)">Searching TMDB...</div>';
+    
+    var parsed = tmdbParseFilename(rawQuery);
+    var queryToUse = parsed.title || rawQuery;
+
+    var movieUrl = "https://api.themoviedb.org/3/search/movie?api_key=" + TMDB_API_KEY + "&query=" + encodeURIComponent(queryToUse) + (parsed.year ? "&year=" + parsed.year : "");
+    var tvUrl = "https://api.themoviedb.org/3/search/tv?api_key=" + TMDB_API_KEY + "&query=" + encodeURIComponent(queryToUse);
+
+    Promise.all([
+      fetch(movieUrl).then(function(r) { return r.json(); }).catch(function() { return { results: [] }; }),
+      fetch(tvUrl).then(function(r) { return r.json(); }).catch(function() { return { results: [] }; })
+    ]).then(function (data) {
+      var movies = (data[0].results || []).slice(0, 6);
+      var tvs = (data[1].results || []).slice(0, 6);
+      
+      var combined = [];
+      movies.forEach(function(m) { if(m.poster_path) combined.push({ title: m.title, poster: TMDB_IMAGE_BASE + m.poster_path }); });
+      tvs.forEach(function(t) { if(t.poster_path) combined.push({ title: t.name, poster: TMDB_IMAGE_BASE + t.poster_path }); });
+
+      renderGridResults(tmdbResults, combined);
+    });
+  }
+
+  function renderGridResults(container, items) {
+    if (items.length === 0) {
+      container.innerHTML = '<div style="grid-column:1/-1; font-size:12px; color:var(--text-muted)">No poster results found.</div>';
+      return;
+    }
+
+    var html = "";
+    items.forEach(function(item) {
+      html += '<div class="poster-card" onclick="selectPoster(\'' + item.poster.replace(/'/g, "\\'") + '\', \'' + item.title.replace(/'/g, "\\'") + '\')">'
+        + '<img src="' + item.poster + '" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src=\'https://via.placeholder.com/342x513?text=No+Poster\';">'
+        + '<div class="title">' + item.title + '</div>'
+        + '</div>';
+    });
+    container.innerHTML = html;
+  }
+
+  btnAttachUrl.addEventListener("click", function() {
+    var url = directUrlInput.value.trim();
+    if(!url) return;
+    selectPoster(url, "Custom Image Link");
+    directUrlInput.value = "";
+  });
+
+  function selectPoster(url, title) {
+    selectedPoster = { url: url, title: title };
+    selectedPosterImg.src = url;
+    selectedPosterTitle.textContent = title;
+    selectedPosterBox.style.display = "flex";
+    
+    if(!titleInput.value && title !== "Custom Image Link") titleInput.value = title;
+    imdbResults.innerHTML = "";
+    tmdbResults.innerHTML = "";
+    imdbSearchInput.value = "";
+    tmdbSearchInput.value = "";
+  }
+
+  document.getElementById("btnRemovePoster").addEventListener("click", function() {
+    selectedPoster = null;
+    selectedPosterBox.style.display = "none";
+  });
+
+  document.getElementById("btnSend").addEventListener("click", function() {
+    var title = titleInput.value.trim();
+    var body = bodyInput.value.trim();
+
+    if(!title && !body) {
+      sendStatus.className = "status-text err";
+      sendStatus.textContent = "Please fill in a title or body.";
+      return;
+    }
+
+    var btn = this;
+    btn.disabled = true;
+    sendStatus.className = "status-text";
+    sendStatus.textContent = "Sending notification...";
+
+    var payload = { title: title, body: body, ts: Date.now() };
+    if(selectedPoster) payload.poster = selectedPoster.url;
+
+    var url = getDbUrl() + "/notifications.json";
+    if(getDbSecret()) url += "?auth=" + encodeURIComponent(getDbSecret());
+
+    fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    })
+    .then(function(r) { if(!r.ok) throw new Error(); return r.json(); })
+    .then(function() {
+      sendStatus.className = "status-text ok";
+      sendStatus.textContent = "Notification sent successfully!";
+      titleInput.value = "";
+      bodyInput.value = "";
+      selectedPoster = null;
+      selectedPosterBox.style.display = "none";
+      loadHistory();
+    })
+    .catch(function() {
+      sendStatus.className = "status-text err";
+      sendStatus.textContent = "Failed to send. Verify Firebase DB URL/Secret.";
+    })
+    .finally(function() { btn.disabled = false; });
+  });
+
+  function loadHistory() {
+    var url = getDbUrl() + "/notifications.json";
+    if(getDbSecret()) url += "?auth=" + encodeURIComponent(getDbSecret());
+
+    fetch(url)
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if(!data) { historyList.innerHTML = '<div style="font-size:12px; color:var(--text-muted)">No notifications sent yet.</div>'; return; }
+      
+      var list = Object.keys(data).map(function(k) { return Object.assign({ id: k }, data[k]); });
+      list.sort(function(a,b) { return (b.ts || 0) - (a.ts || 0); });
+
+      var html = "";
+      list.forEach(function(item) {
+        var imgHtml = item.poster ? '<img src="' + item.poster + '" referrerpolicy="no-referrer">' : '<div style="width:42px;height:60px;background:#121629;border-radius:6px;"></div>';
+        html += '<div class="history-card" id="hist-' + item.id + '">'
+          + imgHtml
+          + '<div class="history-details">'
+          + '<h4>' + (item.title || "No Title") + '</h4>'
+          + '<p>' + (item.body || "") + '</p>'
+          + '</div>'
+          + '<button class="btn-del" onclick="deleteHistoryItem(\'' + item.id + '\')">Delete</button>'
+          + '</div>';
+      });
+      historyList.innerHTML = html;
+    });
+  }
+
+  function deleteHistoryItem(id) {
+    var url = getDbUrl() + "/notifications/" + id + ".json";
+    if(getDbSecret()) url += "?auth=" + encodeURIComponent(getDbSecret());
+
+    fetch(url, { method: "DELETE" }).then(function() {
+      var el = document.getElementById("hist-" + id);
+      if(el) el.remove();
+    });
+  }
+
+  // ===== Helpers =====
+  function escapeHtml(str) {
+    var div = document.createElement("div");
+    div.innerText = str == null ? "" : str;
+    return div.innerHTML;
+  }
+
+  var toastTimer = null;
   function showToast(msg, good) {
-    var el = document.getElementById("toast");
-    el.textContent = msg;
-    el.className = "toast show " + (good ? "good" : "bad");
-    setTimeout(() => el.classList.remove("show"), 3000);
+    toastEl.textContent = msg;
+    toastEl.className = "toast show " + (good ? "good" : "bad");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toastEl.classList.remove("show"); }, 3000);
   }
 </script>
 </body>
-</html>
+  </html>
