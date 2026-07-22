@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>D-FLIX Admin Control Center</title>
+<title>D-FLIX Admin — Posters</title>
 <style>
   :root {
     --bg: #050508;
@@ -11,23 +11,20 @@
     --card: #12121a;
     --border: rgba(255,255,255,0.08);
     --blue: #00e5ff;
-    --blue-glow: rgba(0, 229, 255, 0.25);
     --muted: #8a8a96;
     --danger: #ff4d4d;
     --good: #3ddc84;
-    --input-bg: #0a0a10;
   }
-  
-  * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-  
+  * { box-sizing: border-box; }
   body {
     margin: 0; min-height: 100vh;
     background: radial-gradient(circle at 20% -10%, #0d1520 0%, var(--bg) 55%);
     color: #fff;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   }
   .hidden { display: none !important; }
 
-  /* ---------- Global Shared UI ---------- */
+  /* ---------- shared bits ---------- */
   .brand { display: flex; align-items: center; gap: 10px; }
   .brand-mark {
     width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
@@ -36,7 +33,7 @@
     font-weight: 800; font-size: 15px; color: #001217;
   }
   .brand-text { font-size: 15px; font-weight: 700; letter-spacing: 0.3px; white-space: nowrap; }
-  .brand-text span { color: var(--blue); font-weight: 600; }
+  .brand-text span { color: var(--muted); font-weight: 500; }
 
   .btn {
     display: inline-flex; align-items: center; justify-content: center; gap: 8px;
@@ -47,21 +44,22 @@
   .btn:active { transform: scale(0.98); }
   .btn-primary { background: var(--blue); color: #001217; }
   .btn-primary:hover { filter: brightness(1.08); }
-  .btn-ghost { background: rgba(255,255,255,0.06); color: #fff; border: 1px solid var(--border); }
+  .btn-ghost { background: rgba(255,255,255,0.06); color: #fff; }
   .btn-ghost:hover { filter: brightness(1.2); }
   .btn-danger { background: rgba(255,77,77,0.12); color: var(--danger); }
   .btn-danger:hover { filter: brightness(1.15); }
   .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-  .field { margin-bottom: 16px; position: relative; }
+  .field { margin-bottom: 16px; }
   .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; font-weight: 600; }
-  .field input, .field textarea {
-    width: 100%; background: var(--input-bg); border: 1px solid var(--border);
+  .field input {
+    width: 100%; background: #0a0a10; border: 1px solid var(--border);
     border-radius: 10px; padding: 12px 14px; color: #fff; font-size: 14px; outline: none;
   }
-  .field input:focus, .field textarea:focus { border-color: var(--blue); }
+  .field input:focus { border-color: var(--blue); }
+  .field input[readonly] { color: var(--muted); }
 
-  /* Login Screen */
+  /* ---------- Login screen (Firebase admin auth) ---------- */
   .login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
   .login-card {
     width: 100%; max-width: 360px; background: var(--panel); border: 1px solid var(--border);
@@ -73,43 +71,25 @@
     font-size: 13px; padding: 10px 12px; border-radius: 8px; margin-bottom: 16px; display: none;
   }
   .login-error.show { display: block; }
+  .login-hint { font-size: 12px; color: var(--muted); margin-top: 18px; line-height: 1.5; }
 
-  /* Main Navigation Topbar */
-  .main-topbar {
-    position: sticky; top: 0; z-index: 50;
+  /* ---------- Admin shell ---------- */
+  .topbar {
+    position: sticky; top: 0; z-index: 30;
     display: flex; align-items: center; justify-content: space-between; gap: 12px;
-    padding: 14px 20px; background: rgba(5,5,8,0.92); backdrop-filter: blur(12px);
+    padding: 14px 20px; background: rgba(5,5,8,0.9); backdrop-filter: blur(10px);
     border-bottom: 1px solid var(--border); flex-wrap: wrap;
   }
-  .main-tabs { display: flex; gap: 6px; background: rgba(255,255,255,0.04); padding: 4px; border-radius: 10px; }
-  .main-tab-btn {
-    border: none; background: none; color: var(--muted); font-size: 13px; font-weight: 700;
-    padding: 9px 16px; border-radius: 8px; cursor: pointer; transition: all 0.2s;
-  }
-  .main-tab-btn.active { background: var(--blue); color: #001217; }
-
-  .wrap { max-width: 1100px; margin: 0 auto; padding: 22px 20px 60px; }
-
-  /* Toast & Overlay */
-  .toast {
-    position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%) translateY(20px);
-    background: #12121a; border: 1px solid var(--border); color: #fff;
-    padding: 12px 20px; border-radius: 10px; font-size: 13px; font-weight: 600;
-    opacity: 0; pointer-events: none; transition: all 0.25s ease; z-index: 999;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-  }
-  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-  .toast.good { border-color: rgba(61,220,132,0.4); }
-  .toast.bad { border-color: rgba(255,77,77,0.4); }
-
-  /* ==================== SECTION 1: POSTERS STYLES ==================== */
-  .inner-tabs { display: flex; gap: 6px; background: rgba(255,255,255,0.04); padding: 4px; border-radius: 10px; margin-bottom: 16px; width: fit-content; }
-  .inner-tab-btn {
+  .tabs { display: flex; gap: 6px; background: rgba(255,255,255,0.04); padding: 4px; border-radius: 10px; }
+  .tab-btn {
     border: none; background: none; color: var(--muted); font-size: 12px; font-weight: 700;
     padding: 8px 14px; border-radius: 8px; cursor: pointer;
   }
-  .inner-tab-btn.active { background: rgba(255,255,255,0.12); color: #fff; }
+  .tab-btn.active { background: var(--blue); color: #001217; }
 
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 22px 20px 60px; }
+
+  /* ---------- Drive connect state ---------- */
   .connect-card {
     background: var(--panel); border: 1px solid var(--border); border-radius: 16px;
     padding: 40px 28px; text-align: center; max-width: 440px; margin: 40px auto;
@@ -117,15 +97,34 @@
   .connect-card .e { font-size: 36px; margin-bottom: 14px; }
   .connect-card .t { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
   .connect-card .m { font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 22px; }
+  .config-warning {
+    background: rgba(255,77,77,0.1); border: 1px solid rgba(255,77,77,0.3); color: #ff8a8a;
+    font-size: 12px; padding: 12px 14px; border-radius: 10px; text-align: left; line-height: 1.6; margin-bottom: 18px;
+  }
+  .config-warning code { background: rgba(255,255,255,0.08); padding: 1px 5px; border-radius: 4px; }
 
-  .breadcrumb-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+  /* ---------- Breadcrumb (file-manager feel) ---------- */
+  .breadcrumb-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    margin-bottom: 16px; flex-wrap: wrap;
+  }
   .breadcrumb { font-size: 13px; color: var(--muted); display: flex; align-items: center; flex-wrap: wrap; gap: 2px; }
   .breadcrumb .crumb { cursor: pointer; padding: 4px 6px; border-radius: 6px; }
   .breadcrumb .crumb:hover { background: rgba(255,255,255,0.06); color: #fff; }
   .breadcrumb .crumb:last-child { color: #fff; font-weight: 700; cursor: default; }
+  .breadcrumb .crumb:last-child:hover { background: none; }
   .breadcrumb .crumb-sep { color: #444; padding: 0 2px; }
 
-  .fm-grid, .poster-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 14px; }
+  .search-row { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+  .search-row input {
+    flex: 1; background: #0a0a10; border: 1px solid var(--border); border-radius: 10px;
+    padding: 11px 14px; color: #fff; font-size: 13px; outline: none;
+  }
+  .search-row input:focus { border-color: var(--blue); }
+  .count-pill { font-size: 11px; color: var(--muted); background: rgba(255,255,255,0.05); padding: 6px 10px; border-radius: 20px; white-space: nowrap; }
+
+  /* ---------- File-manager grid ---------- */
+  .fm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 14px; }
   .fm-card {
     background: var(--card); border: 1px solid var(--border); border-radius: 12px;
     overflow: hidden; display: flex; flex-direction: column; position: relative;
@@ -155,22 +154,15 @@
   .fm-actions button:hover { filter: brightness(1.3); }
   .fm-actions .poster-btn { background: rgba(0,229,255,0.12); color: var(--blue); }
 
-  .fm-card .select-check {
-    position: absolute; top: 6px; left: 6px; width: 22px; height: 22px; border-radius: 50%;
-    background: rgba(0,0,0,0.55); border: 2px solid rgba(255,255,255,0.5); z-index: 5;
-    display: none; align-items: center; justify-content: center; color: #fff; font-size: 12px; font-weight: 800;
-  }
-  .fm-card.select-mode .select-check { display: flex; }
-  .fm-card.selected .select-check { background: var(--blue); border-color: var(--blue); color: #001217; }
-  .fm-card.selected .fm-thumb { outline: 3px solid var(--blue); outline-offset: -3px; }
+  .empty-state { text-align: center; padding: 50px 20px; color: var(--muted); }
+  .empty-state .e { font-size: 34px; margin-bottom: 10px; }
+  .empty-state .t { font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+  .empty-state .m { font-size: 12px; }
 
-  .bulk-bar {
-    position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%);
-    background: #12121a; border: 1px solid var(--border); border-radius: 14px;
-    padding: 12px 16px; display: flex; align-items: center; gap: 16px;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.6); z-index: 90; max-width: 92vw;
-  }
+  /* ---------- Manage-all list (flat) ---------- */
+  .poster-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 14px; }
 
+  /* ---------- Poster edit modal ---------- */
   .modal-overlay {
     position: fixed; inset: 0; z-index: 100; display: none;
     align-items: center; justify-content: center; background: rgba(0,0,0,0.65); padding: 20px;
@@ -180,103 +172,80 @@
     width: 100%; max-width: 380px; background: var(--panel); border: 1px solid var(--border);
     border-radius: 16px; padding: 24px; max-height: 90vh; overflow-y: auto;
   }
+  .modal-title { font-size: 15px; font-weight: 700; margin-bottom: 18px; }
   .preview-box {
     width: 140px; aspect-ratio: 2/3; background: #0a0a10; border: 1px dashed var(--border);
     border-radius: 12px; display: flex; align-items: center; justify-content: center;
     overflow: hidden; margin: 0 auto 18px; color: var(--muted); font-size: 12px; text-align: center;
   }
   .preview-box img { width: 100%; height: 100%; object-fit: cover; }
+  .upload-row { display: flex; gap: 8px; align-items: center; }
+  .upload-row input[type=file] { display: none; }
+  .upload-label {
+    flex: 1; text-align: center; font-size: 12px; padding: 10px;
+    border: 1px dashed var(--border); border-radius: 8px; cursor: pointer; color: var(--muted);
+  }
+  .upload-label:hover { border-color: var(--blue); color: var(--blue); }
+  .upload-progress { font-size: 11px; color: var(--blue); margin-top: 6px; display: none; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+  .modal-actions .btn { flex: 1; }
 
+  /* ---------- TMDB auto-fetch results gallery ---------- */
   .tmdb-results-grid {
     display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 10px;
     max-height: 340px; overflow-y: auto; padding-right: 2px;
   }
   .tmdb-result-card { cursor: pointer; border-radius: 10px; overflow: hidden; background: var(--card); border: 1px solid var(--border); }
+  .tmdb-result-card:hover { border-color: var(--blue); }
   .tmdb-result-thumb { width: 100%; aspect-ratio: 2/3; background: #0a0a10; display: flex; align-items: center; justify-content: center; }
   .tmdb-result-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .tmdb-result-thumb .ph { font-size: 20px; color: var(--muted); }
   .tmdb-result-label { font-size: 10.5px; padding: 5px 6px 6px; line-height: 1.3; }
+  .tmdb-type-tag {
+    display: inline-block; margin-top: 3px; font-size: 9px; font-weight: 700;
+    background: rgba(0,229,255,0.12); color: var(--blue); padding: 1px 5px; border-radius: 5px;
+  }
 
-  /* ==================== SECTION 2: PUSH NOTIFICATION STYLES ==================== */
-  .glass-card {
-    background: var(--card);
-    backdrop-filter: blur(12px);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 24px;
-    margin-bottom: 20px;
+  /* ---------- Bulk selection on Browse Drive ---------- */
+  .fm-card { position: relative; }
+  .fm-card .select-check {
+    position: absolute; top: 6px; left: 6px; width: 22px; height: 22px; border-radius: 50%;
+    background: rgba(0,0,0,0.55); border: 2px solid rgba(255,255,255,0.5); z-index: 5;
+    display: none; align-items: center; justify-content: center; color: #fff; font-size: 12px; font-weight: 800;
   }
-  .card-title {
-    font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
-    color: var(--blue); margin-bottom: 18px; display: flex; align-items: center; gap: 8px;
-  }
-  .poster-sources { display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
-  .source-btn {
-    background: var(--input-bg); border: 1px solid var(--border); color: var(--muted);
-    padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer;
-  }
-  .source-btn.active { border-color: var(--blue); color: var(--blue); background: rgba(0, 229, 255, 0.1); }
+  .fm-card.select-mode .select-check { display: flex; }
+  .fm-card.selected .select-check { background: var(--blue); border-color: var(--blue); color: #001217; }
+  .fm-card.selected .fm-thumb { outline: 3px solid var(--blue); outline-offset: -3px; }
+  .fm-card.select-mode { cursor: pointer; }
+  .fm-card.select-mode .fm-actions { pointer-events: none; opacity: 0.4; }
 
-  .search-input-box { display: flex; gap: 8px; width: 100%; }
-
-  .search-results-grid {
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(105px, 1fr)); gap: 12px;
-    margin-top: 12px; max-height: 320px; overflow-y: auto;
+  .bulk-bar {
+    position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%);
+    background: #12121a; border: 1px solid var(--border); border-radius: 14px;
+    padding: 12px 16px; display: flex; align-items: center; gap: 16px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.6); z-index: 90; max-width: 92vw;
   }
-  .poster-card {
-    background: var(--input-bg); border-radius: 10px; overflow: hidden; cursor: pointer;
-    border: 2px solid transparent; transition: all 0.2s ease;
-  }
-  .poster-card:hover { transform: translateY(-4px); border-color: var(--blue); }
-  .poster-card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; display: block; background: #12121a; }
-  .poster-card .title { font-size: 11px; padding: 8px; text-align: center; color: #ddd; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bulk-bar #bulkCountLabel { font-size: 13px; font-weight: 700; white-space: nowrap; }
 
-  .poster-preview-pill {
-    display: flex; align-items: center; gap: 12px; background: var(--input-bg);
-    border: 1px solid var(--blue); padding: 10px 14px; border-radius: 12px; margin-top: 10px;
+  .toast {
+    position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%) translateY(20px);
+    background: #12121a; border: 1px solid var(--border); color: #fff;
+    padding: 12px 20px; border-radius: 10px; font-size: 13px; font-weight: 600;
+    opacity: 0; pointer-events: none; transition: all 0.25s ease; z-index: 999;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
   }
-  .poster-preview-pill img { width: 40px; height: 55px; border-radius: 6px; object-fit: cover; }
-  .poster-preview-pill .info { flex: 1; min-width: 0; }
-  .poster-preview-pill .info .p-title { font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-  .history-list { display: flex; flex-direction: column; gap: 12px; }
-  .history-card {
-    display: flex; align-items: center; gap: 14px; background: var(--input-bg);
-    padding: 12px; border-radius: 10px; border: 1px solid var(--border);
-  }
-  .history-card img { width: 42px; height: 60px; border-radius: 6px; object-fit: cover; }
-  .history-details { flex: 1; }
-  .history-details h4 { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
-  .history-details p { font-size: 12px; color: var(--muted); }
-
-  /* ==================== SECTION 3: REQUESTS STYLES ==================== */
-  .req-card {
-    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
-    padding: 16px; display: flex; justify-content: space-between; gap: 14px; margin-bottom: 12px;
-  }
-  .req-main { min-width: 0; flex: 1; }
-  .req-name { font-size: 15px; font-weight: 700; color: #fff; word-break: break-word; }
-  .req-note { font-size: 13px; color: var(--muted); margin-top: 5px; line-height: 1.45; word-break: break-word; }
-  .req-time { font-size: 11px; color: var(--muted); margin-top: 8px; opacity: 0.75; }
-
-  .btn-icon {
-    width: 34px; height: 34px; border-radius: 9px; border: 1px solid var(--border);
-    background: rgba(255,255,255,0.04); color: var(--muted); display: flex; align-items: center;
-    justify-content: center; cursor: pointer;
-  }
-  .btn-icon.danger { color: var(--danger); border-color: rgba(255,77,77,0.3); }
-
-  .count-pill { font-size: 11px; color: var(--muted); background: rgba(255,255,255,0.05); padding: 6px 10px; border-radius: 20px; white-space: nowrap; }
-  .empty-state { text-align: center; padding: 50px 20px; color: var(--muted); }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast.good { border-color: rgba(61,220,132,0.4); }
+  .toast.bad { border-color: rgba(255,77,77,0.4); }
 </style>
 </head>
 <body>
 
-<!-- Login Wrap -->
 <div class="login-wrap" id="loginWrap">
   <div class="login-card">
     <div class="brand">
       <div class="brand-mark">D</div>
-      <div class="brand-text">D-FLIX <span>Control Hub</span></div>
+      <div class="brand-text">D-FLIX <span>Admin</span></div>
     </div>
     <div class="login-error" id="loginError"></div>
     <div class="field">
@@ -288,215 +257,160 @@
       <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password">
     </div>
     <button class="btn btn-primary" id="loginBtn" style="width:100%;">Login</button>
+    <div class="login-hint">
+      Ye account Firebase Console → Authentication → Users me pehle se bana hona chahiye.
+    </div>
   </div>
 </div>
 
-<!-- Admin Wrap -->
 <div id="adminWrap" class="hidden">
-  <div class="main-topbar">
+  <div class="topbar">
     <div class="brand">
       <div class="brand-mark">D</div>
       <div class="brand-text">D-FLIX <span>Admin</span></div>
     </div>
-    <div class="main-tabs" id="mainTabsRow">
-      <button class="main-tab-btn active" data-section="sectionPosters">🖼️ Posters</button>
-      <button class="main-tab-btn" data-section="sectionPush">🚀 Push Portal</button>
-      <button class="main-tab-btn" data-section="sectionRequests">🎬 Requests</button>
+    <div class="tabs" id="tabsRow">
+      <button class="tab-btn active" data-tab="browse">📁 Browse Drive</button>
+      <button class="tab-btn" data-tab="manage">🖼️ All Posters</button>
     </div>
     <div style="display:flex; gap:8px;">
-      <button class="btn btn-ghost" id="setupHelpBtn">⚙️ Setup Help</button>
+      <button class="btn btn-ghost" id="setupHelpBtn">⚙️ Setup help</button>
       <button class="btn btn-ghost hidden" id="disconnectDriveBtn">Disconnect Drive</button>
       <button class="btn btn-ghost" id="logoutBtn">Logout</button>
     </div>
   </div>
 
   <div class="wrap">
-    
-    <!-- Setup Help Panel -->
+
     <div id="setupHelpPanel" class="hidden" style="background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:18px 20px; margin-bottom:20px; font-size:12.5px; line-height:1.7; color:var(--muted);">
-      <div style="color:#fff; font-weight:700; font-size:13.5px; margin-bottom:10px;">Firebase Rules Reference</div>
-      <pre style="background:#0a0a10; border:1px solid var(--border); border-radius:8px; padding:12px; overflow-x:auto; color:#cde; margin:0;">{
+      <div style="color:#fff; font-weight:700; font-size:13.5px; margin-bottom:10px;">Save fail ho raha hai? Ye 2 cheezein check karein:</div>
+      <div style="color:#fff; font-weight:700; margin-bottom:4px;">1. Realtime Database → Rules (Firebase Console)</div>
+      <pre style="background:#0a0a10; border:1px solid var(--border); border-radius:8px; padding:12px; overflow-x:auto; color:#cde; margin:0 0 14px;">{
   "rules": {
-    "posters": { ".read": true, ".write": "auth != null" },
-    "notifications": { ".read": true, ".write": "auth != null" },
-    "requests": { ".read": true, ".write": true }
+    "posters": {
+      ".read": true,
+      ".write": "auth != null"
+    }
+  }
+}</pre>
+      <div style="color:#fff; font-weight:700; margin-bottom:4px;">2. Storage → Rules (agar image upload use kar rahe ho)</div>
+      <pre style="background:#0a0a10; border:1px solid var(--border); border-radius:8px; padding:12px; overflow-x:auto; color:#cde; margin:0;">rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /posters/{file} {
+      allow read;
+      allow write: if request.auth != null;
+    }
   }
 }</pre>
     </div>
 
-    <!-- ==================== SECTION 1: POSTERS MANAGEMENT ==================== -->
-    <div id="sectionPosters">
-      <div class="inner-tabs" id="posterTabsRow">
-        <button class="inner-tab-btn active" data-tab="browse">📁 Browse Drive</button>
-        <button class="inner-tab-btn" data-tab="manage">🖼️ All Posters</button>
+    <div id="tabBrowse">
+      <div id="driveConnectState" class="connect-card">
+        <div class="e">🔗</div>
+        <div class="t">Google Drive connect karein</div>
+        <div class="m">
+          Ye admin panel wahi Drive folder browse karta hai jo app me dikhta hai — taaki tum seedhe
+          us par tap karke poster laga sako, koi naam type karne ki zaroorat nahi.
+        </div>
+        <div class="config-warning" id="clientIdWarning">
+          Pehle is file ke andar <code>GOOGLE_CLIENT_ID</code> set karna hoga (Google Cloud Console se
+          "Web application" OAuth Client ID banao). Upar "Setup help" button dekhein.
+        </div>
+        <button class="btn btn-primary" id="connectDriveBtn">Connect Google Drive</button>
       </div>
 
-      <div id="tabBrowse">
-        <div id="driveConnectState" class="connect-card">
-          <div class="e">🔗</div>
-          <div class="t">Google Drive connect karein</div>
-          <div class="m">Connect Drive folder to directly map movie/series posters.</div>
-          <button class="btn btn-primary" id="connectDriveBtn">Connect Google Drive</button>
-        </div>
-
-        <div id="driveBrowseState" class="hidden">
-          <div class="breadcrumb-row">
-            <div class="breadcrumb" id="breadcrumb"></div>
-            <div style="display:flex; gap:8px; align-items:center;">
-              <button class="btn btn-ghost hidden" id="selectAllBtn">☑️ Select All</button>
-              <button class="btn btn-ghost" id="selectModeBtn">☑️ Select multiple</button>
-              <div class="count-pill" id="driveCountPill">0 items</div>
-            </div>
+      <div id="driveBrowseState" class="hidden">
+        <div class="breadcrumb-row">
+          <div class="breadcrumb" id="breadcrumb"></div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <button class="btn btn-ghost hidden" id="selectAllBtn">☑️ Select All</button>
+            <button class="btn btn-ghost" id="selectModeBtn">☑️ Select multiple</button>
+            <div class="count-pill" id="driveCountPill">0 items</div>
           </div>
-          <div id="driveBrowseGrid"></div>
         </div>
-      </div>
-
-      <div id="tabManage" class="hidden">
-        <div style="display:flex; gap:10px; margin-bottom:16px;">
-          <input type="text" id="searchInput" placeholder="Search poster by name..." style="flex:1; background:var(--input-bg); border:1px solid var(--border); border-radius:10px; padding:11px 14px; color:#fff; font-size:13px; outline:none;">
-          <div class="count-pill" id="countPill">0 posters</div>
-        </div>
-        <div id="posterListWrap"></div>
-      </div>
-
-      <div class="bulk-bar hidden" id="bulkBar">
-        <div id="bulkCountLabel" style="font-size:13px; font-weight:700;">0 selected</div>
-        <button class="btn btn-ghost" id="bulkCancelBtn">Cancel</button>
-        <button class="btn btn-primary" id="bulkApplyBtn">Apply same poster</button>
+        <div id="driveBrowseGrid"></div>
       </div>
     </div>
 
-    <!-- ==================== SECTION 2: PUSH NOTIFICATIONS ==================== -->
-    <div id="sectionPush" class="hidden">
-      <!-- Notification Form -->
-      <div class="glass-card">
-        <div class="card-title">🚀 New Push Broadcast</div>
-        
-        <div class="field">
-          <label>Attach Poster Source</label>
-          <div class="poster-sources">
-            <button class="source-btn active" id="btnModeImdb" onclick="setPosterMode('imdb')">💛 IMDb Search</button>
-            <button class="source-btn" id="btnModeTmdb" onclick="setPosterMode('tmdb')">🎬 TMDB Search</button>
-            <button class="source-btn" id="btnModeUrl" onclick="setPosterMode('url')">🔗 Direct Link</button>
-          </div>
-
-          <div id="modeImdbContainer">
-            <div class="search-input-box">
-              <input type="text" id="imdbSearchInput" placeholder="Search IMDb (e.g. Oppenheimer)...">
-              <button class="btn btn-primary" id="btnSearchImdb">🔍 Search</button>
-            </div>
-            <div id="imdbResults" class="search-results-grid"></div>
-          </div>
-
-          <div id="modeTmdbContainer" style="display:none;">
-            <div class="search-input-box">
-              <input type="text" id="tmdbSearchInput" placeholder="Search TMDB (e.g. Stranger Things)...">
-              <button class="btn btn-primary" id="btnSearchTmdb">🔍 Search</button>
-            </div>
-            <div id="tmdbResults" class="search-results-grid"></div>
-          </div>
-
-          <div id="modeUrlContainer" style="display:none; gap:10px;">
-            <input type="text" id="directUrlInput" placeholder="Paste image link (e.g. https://...)">
-            <button class="btn btn-primary" id="btnAttachUrl" style="margin-top:6px;">Preview</button>
-          </div>
-
-          <div id="selectedPosterBox" class="poster-preview-pill" style="display:none;">
-            <img id="selectedPosterImg" src="" alt="">
-            <div class="info">
-              <div class="p-title" id="selectedPosterTitle"></div>
-            </div>
-            <button class="btn btn-danger" id="btnRemovePoster" style="padding:4px 8px; font-size:11px;">Remove</button>
-          </div>
-        </div>
-
-        <div class="field">
-          <label>Notification Title</label>
-          <input type="text" id="pushTitleInput" placeholder="Enter title...">
-        </div>
-
-        <div class="field">
-          <label>Message Content</label>
-          <textarea id="pushBodyInput" rows="3" placeholder="Enter message description..."></textarea>
-        </div>
-
-        <button class="btn btn-primary" id="btnSendPush" style="width:100%;">Dispatch Notification</button>
-        <div id="pushStatus" style="font-size:12px; margin-top:10px; text-align:center;"></div>
-      </div>
-
-      <!-- History -->
-      <div class="glass-card">
-        <div class="card-title">🕒 Broadcast History</div>
-        <div id="pushHistoryList" class="history-list"></div>
-      </div>
+    <div class="bulk-bar hidden" id="bulkBar">
+      <div id="bulkCountLabel">0 selected</div>
+      <button class="btn btn-ghost" id="bulkCancelBtn">Cancel</button>
+      <button class="btn btn-primary" id="bulkApplyBtn">Apply same poster</button>
     </div>
 
-    <!-- ==================== SECTION 3: USER REQUESTS ==================== -->
-    <div id="sectionRequests" class="hidden">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
-        <div style="font-size:16px; font-weight:700;">Movie / Series Requests</div>
-        <div style="display:flex; gap:10px; align-items:center;">
-          <span class="count-pill" id="reqCountPill">0</span>
-          <button class="btn btn-ghost" onclick="loadRequests()">Refresh</button>
+    <div id="tabManage" class="hidden">
+      <div class="search-row">
+        <input type="text" id="searchInput" placeholder="Naam se search karein...">
+        <div class="count-pill" id="countPill">0 posters</div>
+      </div>
+      <div id="posterListWrap">
+        <div class="empty-state">
+          <div class="e">🖼️</div>
+          <div class="t">Abhi koi poster nahi</div>
+          <div class="m">"Browse Drive" tab se kisi bhi file/folder par poster lagayein.</div>
         </div>
       </div>
-
-      <div class="field">
-        <input type="text" id="reqSearchInput" placeholder="Search requests..." oninput="renderRequestsList()">
-      </div>
-
-      <div id="reqListContainer"></div>
     </div>
 
   </div>
 </div>
 
-<!-- Global Modal (Poster Edit) -->
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal-box">
-    <div style="font-size:15px; font-weight:700; margin-bottom:18px;" id="modalTitle">Set poster</div>
-    
+    <div class="modal-title" id="modalTitle">Set poster</div>
+
     <div id="modalFormFields">
       <div class="preview-box" id="previewBox">No image</div>
+
       <div class="field" id="posterNameField">
-        <label>Folder / File Name</label>
-        <input type="text" id="posterName">
+        <label>Folder / File ka naam</label>
+        <input type="text" id="posterName" placeholder="e.g. Pathaan (2023)">
       </div>
+
       <div class="field hidden" id="bulkSummaryField">
         <label>Selected items</label>
-        <div id="bulkSummaryText" style="font-size:12.5px; color:var(--muted); background:#0a0a10; border:1px solid var(--border); border-radius:10px; padding:10px;"></div>
+        <div id="bulkSummaryText" style="font-size:12.5px; color:var(--muted); line-height:1.6; background:#0a0a10; border:1px solid var(--border); border-radius:10px; padding:10px 12px;"></div>
       </div>
+
       <div class="field">
-        <button class="btn btn-ghost" id="autoFetchBtn" style="width:100%;">🔍 TMDB Auto-Fetch</button>
+        <button class="btn btn-ghost" id="autoFetchBtn" style="width:100%;">🔍 TMDB se auto-fetch karein (sab options dekhein)</button>
       </div>
+
       <div class="field">
         <label>Poster Image URL</label>
-        <input type="text" id="posterUrl" oninput="updatePreview(this.value.trim())">
+        <input type="text" id="posterUrl" placeholder="https://...jpg" oninput="onUrlInputChange()">
       </div>
-      <div class="field">
-        <label>Upload Image File</label>
-        <input type="file" id="posterFile" accept="image/*">
-        <div id="uploadProgress" style="font-size:11px; color:var(--blue); margin-top:6px; display:none;">Uploading...</div>
+
+      <div class="field" style="margin-bottom:0;">
+        <label>Ya seedhe upload karein</label>
+        <div class="upload-row">
+          <label class="upload-label" for="posterFile">📤 Image chunein aur upload karein</label>
+          <input type="file" id="posterFile" accept="image/*">
+        </div>
+        <div class="upload-progress" id="uploadProgress">Uploading... 0%</div>
       </div>
     </div>
 
     <div id="tmdbResultsPanel" class="hidden">
+      <div style="font-size:12.5px; color:var(--muted); margin-bottom:12px;">
+        TMDB par jo bhi milein — jo sahi lage usko tap karein:
+      </div>
       <div id="tmdbResultsGrid" class="tmdb-results-grid"></div>
-      <button class="btn btn-ghost" id="tmdbResultsBackBtn" style="width:100%; margin-top:14px;">← Back</button>
+      <button class="btn btn-ghost" id="tmdbResultsBackBtn" style="width:100%; margin-top:14px;">← Wapas jao</button>
     </div>
 
-    <div style="display:flex; gap:10px; margin-top:20px;">
-      <button class="btn btn-ghost" id="modalCancelBtn" style="flex:1;">Cancel</button>
-      <button class="btn btn-danger hidden" id="modalDeleteBtn" style="flex:1;">Remove</button>
-      <button class="btn btn-primary" id="modalSaveBtn" style="flex:1;">Save</button>
+    <div class="modal-actions" id="modalActionsRow">
+      <button class="btn btn-ghost" id="modalCancelBtn">Cancel</button>
+      <button class="btn btn-danger hidden" id="modalDeleteBtn">Remove</button>
+      <button class="btn btn-primary" id="modalSaveBtn">Save</button>
     </div>
   </div>
 </div>
 
+
 <div class="toast" id="toast"></div>
 
-<!-- SDKs -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
@@ -504,7 +418,9 @@
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 
 <script>
-  // ================= GLOBAL CONFIGURATION =================
+  // ============================================================
+  // CONFIG — Firebase (already filled in) + Google Drive OAuth
+  // ============================================================
   const firebaseConfig = {
     apiKey: "AIzaSyATfDfJNk0lPVpcsZk7yj2p_DSdK9sQXvo",
     authDomain: "dflix-7b2d2.firebaseapp.com",
@@ -512,88 +428,287 @@
     projectId: "dflix-7b2d2",
     storageBucket: "dflix-7b2d2.firebasestorage.app",
     messagingSenderId: "410654152125",
-    appId: "1:410654152125:web:c55db9c81363abce66eed4"
+    appId: "1:410654152125:web:c55db9c81363abce66eed4",
+    measurementId: "G-H3JQPK01YT"
   };
-  
+
   const GOOGLE_CLIENT_ID = "410654152125-cp96b2j3micih6bak84n14sa24rard24.apps.googleusercontent.com";
   const LOCKED_ROOT_FOLDER_ID = "17s88x00QQXAnTQtFWasBIOcgRqziTEnQ";
   const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.readonly";
+
   const TMDB_API_KEY = "16b0f944d64a43298cf3ce5fc5852ffb";
-  const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w500";
+  const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w342";
+  const TMDB_JUNK_TOKENS = [
+    "1080p", "720p", "480p", "2160p", "4k", "8k", "hdcam", "hdrip", "dvdrip",
+    "webrip", "web dl", "webdl", "bluray", "blu ray", "brrip", "bdrip",
+    "hdtv", "x264", "x265", "hevc", "h264", "h265", "aac", "ac3", "dts",
+    "esubs", "esub", "subbed", "dual audio", "multi audio", "dubbed",
+    "hindi", "english", "tamil", "telugu", "kannada", "malayalam", "korean",
+    "proper", "extended", "uncut", "remastered", "nf", "amzn", "hmax",
+    "yify", "yts", "rarbg", "galaxytv", "psa", "org"
+  ];
+  var tmdbPosterCache = {}; 
+  var currentFolderFiles = []; // Track files in current folder for Select All toggle
+
+  function tmdbParseFilename(rawName) {
+    var name = (rawName || "").replace(/\.(mkv|mp4|avi|mov|wmv|flv|webm|m4v|ts|3gp)$/i, "");
+    var year = null;
+    var yearMatch = name.match(/\b(19\d{2}|20\d{2})\b/);
+    if (yearMatch) year = yearMatch[1];
+
+    var guessedType = "movie";
+    var titleSource;
+    var seMatch = name.match(/\bS\d{1,2}\s?E\d{1,3}\b/i);
+    var seasonMatch = name.match(/\bSeason\s?\d{1,2}\b/i);
+    if (seMatch) {
+      guessedType = "tv";
+      titleSource = name.substring(0, seMatch.index);
+    } else if (seasonMatch) {
+      guessedType = "tv";
+      titleSource = name.substring(0, seasonMatch.index);
+    } else {
+      titleSource = name;
+    }
+
+    titleSource = titleSource.replace(/[\[\(\{][^\[\]\(\)\{\}]*[\]\)\}]/g, " ");
+    titleSource = titleSource.replace(/[._-]/g, " ");
+
+    TMDB_JUNK_TOKENS.forEach(function (tok) {
+      var re = new RegExp("\\b" + tok.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "\\b", "gi");
+      titleSource = titleSource.replace(re, " ");
+    });
+
+    titleSource = titleSource.replace(/\b(19\d{2}|20\d{2})\b/g, " ");
+    titleSource = titleSource.replace(/\b\d+(\.\d+)?\s?(MB|GB|KB)\b/gi, " ");
+    titleSource = titleSource.replace(/\s+/g, " ").trim();
+    titleSource = titleSource.replace(/^[\s\-:,.]+|[\s\-:,.]+$/g, "").trim();
+
+    return { title: titleSource, year: year, guessedType: guessedType };
+  }
+
+  function tmdbSearchMovie(title, year, callback) {
+    var url = "https://api.themoviedb.org/3/search/movie?api_key=" + TMDB_API_KEY
+      + "&query=" + encodeURIComponent(title) + (year ? "&year=" + year : "");
+    fetch(url).then(function (r) { return r.json(); }).then(function (data) {
+      var results = data.results || [];
+      if (results.length > 0) {
+        callback(results[0].poster_path ? TMDB_IMAGE_BASE + results[0].poster_path : null);
+      } else if (year) {
+        tmdbSearchMovie(title, null, callback); 
+      } else {
+        callback(null);
+      }
+    }).catch(function () { callback(null); });
+  }
+
+  function tmdbSearchTv(title, callback) {
+    var url = "https://api.themoviedb.org/3/search/tv?api_key=" + TMDB_API_KEY + "&query=" + encodeURIComponent(title);
+    fetch(url).then(function (r) { return r.json(); }).then(function (data) {
+      var results = data.results || [];
+      callback(results.length > 0 && results[0].poster_path ? TMDB_IMAGE_BASE + results[0].poster_path : null);
+    }).catch(function () { callback(null); });
+  }
+
+  function resolveTmdbPoster(rawName, callback) {
+    if (tmdbPosterCache.hasOwnProperty(rawName)) { callback(tmdbPosterCache[rawName]); return; }
+    var parsed = tmdbParseFilename(rawName);
+    if (!parsed.title) { tmdbPosterCache[rawName] = null; callback(null); return; }
+
+    function done(url) {
+      tmdbPosterCache[rawName] = url;
+      callback(url);
+    }
+    if (parsed.guessedType === "tv") {
+      tmdbSearchTv(parsed.title, done);
+    } else {
+      tmdbSearchMovie(parsed.title, parsed.year, done);
+    }
+  }
+
+  function resolvePostersForCards(items) {
+    var queue = items.slice();
+    var concurrency = 3;
+    var active = 0;
+
+    function next() {
+      while (active < concurrency && queue.length > 0) {
+        var item = queue.shift();
+        active++;
+        (function (it) {
+          resolveTmdbPoster(it.name, function (url) {
+            active--;
+            if (url) applyDriveCardPoster(it.id, url);
+            next();
+          });
+        })(item);
+      }
+    }
+    next();
+  }
+
+  function applyDriveCardPoster(id, url) {
+    var cards = driveBrowseGrid.querySelectorAll(".fm-card");
+    for (var i = 0; i < cards.length; i++) {
+      if (cards[i].getAttribute("data-id") === id) {
+        var key = posterKeyEncode(cards[i].getAttribute("data-name"));
+        if (allPosters[key]) return;
+        var thumb = cards[i].querySelector(".fm-thumb");
+        if (thumb) thumb.innerHTML = '<img src="' + escapeHtml(url) + '" loading="lazy">';
+        return;
+      }
+    }
+  }
 
   firebase.initializeApp(firebaseConfig);
   const auth = firebase.auth();
   const db = firebase.database();
   const storage = firebase.storage();
 
-  // Auth Handling
-  auth.onAuthStateChanged(user => {
+  auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(function (err) {
+    console.error("Auth persistence set nahi ho payi:", err);
+  });
+
+  function posterKeyEncode(name) {
+    var normalized = (name || "").trim().toLowerCase().replace(/\s+/g, " ");
+    return normalized.replace(/[.#$\[\]\/]/g, function (ch) {
+      return "_" + ch.charCodeAt(0) + "_";
+    });
+  }
+
+  // ===== Elements =====
+  const loginWrap = document.getElementById("loginWrap");
+  const adminWrap = document.getElementById("adminWrap");
+  const loginEmail = document.getElementById("loginEmail");
+  const loginPassword = document.getElementById("loginPassword");
+  const loginBtn = document.getElementById("loginBtn");
+  const loginError = document.getElementById("loginError");
+  const logoutBtn = document.getElementById("logoutBtn");
+
+  const tabsRow = document.getElementById("tabsRow");
+  const tabBrowse = document.getElementById("tabBrowse");
+  const tabManage = document.getElementById("tabManage");
+
+  const driveConnectState = document.getElementById("driveConnectState");
+  const driveBrowseState = document.getElementById("driveBrowseState");
+  const connectDriveBtn = document.getElementById("connectDriveBtn");
+  const disconnectDriveBtn = document.getElementById("disconnectDriveBtn");
+  const clientIdWarning = document.getElementById("clientIdWarning");
+  const breadcrumbEl = document.getElementById("breadcrumb");
+  const driveCountPill = document.getElementById("driveCountPill");
+  const driveBrowseGrid = document.getElementById("driveBrowseGrid");
+  const selectModeBtn = document.getElementById("selectModeBtn");
+  const selectAllBtn = document.getElementById("selectAllBtn");
+  const bulkBar = document.getElementById("bulkBar");
+  const bulkCountLabel = document.getElementById("bulkCountLabel");
+  const bulkCancelBtn = document.getElementById("bulkCancelBtn");
+  const bulkApplyBtn = document.getElementById("bulkApplyBtn");
+
+  const searchInput = document.getElementById("searchInput");
+  const countPill = document.getElementById("countPill");
+  const posterListWrap = document.getElementById("posterListWrap");
+
+  const modalOverlay = document.getElementById("modalOverlay");
+  const modalTitle = document.getElementById("modalTitle");
+  const modalFormFields = document.getElementById("modalFormFields");
+  const posterNameField = document.getElementById("posterNameField");
+  const bulkSummaryField = document.getElementById("bulkSummaryField");
+  const bulkSummaryText = document.getElementById("bulkSummaryText");
+  const posterName = document.getElementById("posterName");
+  const posterUrl = document.getElementById("posterUrl");
+  const posterFile = document.getElementById("posterFile");
+  const previewBox = document.getElementById("previewBox");
+  const uploadProgress = document.getElementById("uploadProgress");
+  const modalSaveBtn = document.getElementById("modalSaveBtn");
+  const modalDeleteBtn = document.getElementById("modalDeleteBtn");
+  const modalCancelBtn = document.getElementById("modalCancelBtn");
+  const autoFetchBtn = document.getElementById("autoFetchBtn");
+  const tmdbResultsPanel = document.getElementById("tmdbResultsPanel");
+  const tmdbResultsGrid = document.getElementById("tmdbResultsGrid");
+  const tmdbResultsBackBtn = document.getElementById("tmdbResultsBackBtn");
+
+  const toastEl = document.getElementById("toast");
+
+  var editingKey = null;
+  var bulkModeItems = null; 
+  var selectMode = false;
+  var selectedItems = {}; 
+  var allPosters = {}; 
+
+  loginBtn.addEventListener("click", doLogin);
+  loginPassword.addEventListener("keydown", function (e) { if (e.key === "Enter") doLogin(); });
+
+  function doLogin() {
+    loginError.classList.remove("show");
+    var email = loginEmail.value.trim();
+    var pass = loginPassword.value;
+    if (!email || !pass) {
+      loginError.textContent = "Email aur password dono bharein.";
+      loginError.classList.add("show");
+      return;
+    }
+    loginBtn.disabled = true;
+    loginBtn.textContent = "Logging in...";
+    auth.signInWithEmailAndPassword(email, pass)
+      .catch(function (err) {
+        loginError.textContent = "Login fail: " + (err.message || "Kuch galat hua");
+        loginError.classList.add("show");
+      })
+      .finally(function () {
+        loginBtn.disabled = false;
+        loginBtn.textContent = "Login";
+      });
+  }
+
+  logoutBtn.addEventListener("click", function () { auth.signOut(); });
+
+  var setupHelpBtn = document.getElementById("setupHelpBtn");
+  var setupHelpPanel = document.getElementById("setupHelpPanel");
+  setupHelpBtn.addEventListener("click", function () {
+    setupHelpPanel.classList.toggle("hidden");
+  });
+
+  auth.onAuthStateChanged(function (user) {
     if (user) {
-      document.getElementById("loginWrap").classList.add("hidden");
-      document.getElementById("adminWrap").classList.remove("hidden");
-      initAllModules();
+      loginWrap.classList.add("hidden");
+      adminWrap.classList.remove("hidden");
+      attachPosterListener();
     } else {
-      document.getElementById("adminWrap").classList.add("hidden");
-      document.getElementById("loginWrap").classList.remove("hidden");
+      adminWrap.classList.add("hidden");
+      loginWrap.classList.remove("hidden");
     }
   });
 
-  document.getElementById("loginBtn").addEventListener("click", () => {
-    const email = document.getElementById("loginEmail").value.trim();
-    const pass = document.getElementById("loginPassword").value;
-    auth.signInWithEmailAndPassword(email, pass).catch(err => {
-      const errEl = document.getElementById("loginError");
-      errEl.textContent = err.message;
-      errEl.classList.add("show");
-    });
-  });
-  document.getElementById("logoutBtn").addEventListener("click", () => auth.signOut());
-
-  // Main Section Navigation Tabs
-  document.querySelectorAll("#mainTabsRow .main-tab-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      document.querySelectorAll("#mainTabsRow .main-tab-btn").forEach(b => b.classList.remove("active"));
+  tabsRow.querySelectorAll(".tab-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      tabsRow.querySelectorAll(".tab-btn").forEach(function (b) { b.classList.remove("active"); });
       btn.classList.add("active");
-      const sec = btn.getAttribute("data-section");
-      document.getElementById("sectionPosters").classList.toggle("hidden", sec !== "sectionPosters");
-      document.getElementById("sectionPush").classList.toggle("hidden", sec !== "sectionPush");
-      document.getElementById("sectionRequests").classList.toggle("hidden", sec !== "sectionRequests");
+      var tab = btn.getAttribute("data-tab");
+      tabBrowse.classList.toggle("hidden", tab !== "browse");
+      tabManage.classList.toggle("hidden", tab !== "manage");
     });
   });
 
-  document.getElementById("setupHelpBtn").addEventListener("click", () => {
-    document.getElementById("setupHelpPanel").classList.toggle("hidden");
-  });
-
-  function showToast(msg, good) {
-    const toastEl = document.getElementById("toast");
-    toastEl.textContent = msg;
-    toastEl.className = "toast show " + (good ? "good" : "bad");
-    setTimeout(() => toastEl.classList.remove("show"), 3000);
-  }
-
-  function initAllModules() {
-    attachPosterListener();
-    loadPushHistory();
-    loadRequests();
-    initDriveOAuth();
-  }
-
-  // ================= GOOGLE DRIVE OAUTH CLIENT =================
   var driveAccessToken = null;
   var tokenClient = null;
   var driveFolderStack = [{ id: LOCKED_ROOT_FOLDER_ID, name: "My Drive" }];
 
-  function initDriveOAuth() {
-    var tryInit = setInterval(() => {
+  if (GOOGLE_CLIENT_ID.indexOf("REPLACE_WITH") === 0) {
+    connectDriveBtn.disabled = true;
+    connectDriveBtn.textContent = "Client ID set nahi hai";
+  } else {
+    clientIdWarning.classList.add("hidden");
+  }
+
+  window.addEventListener("load", function () {
+    var tryInit = setInterval(function () {
       if (window.google && google.accounts && google.accounts.oauth2) {
         clearInterval(tryInit);
         tokenClient = google.accounts.oauth2.initTokenClient({
           client_id: GOOGLE_CLIENT_ID,
           scope: DRIVE_SCOPE,
-          callback: (resp) => {
+          callback: function (resp) {
             if (resp.error) {
-              showToast("Drive Connect Failed: " + resp.error, false);
+              showToast("Google Drive connect fail: " + resp.error, false);
               return;
             }
             driveAccessToken = resp.access_token;
@@ -602,25 +717,26 @@
         });
       }
     }, 300);
-  }
+  });
 
-  document.getElementById("connectDriveBtn").addEventListener("click", () => {
-    if (!tokenClient) { showToast("Google SDK loading... try again", false); return; }
+  connectDriveBtn.addEventListener("click", function () {
+    if (!tokenClient) { showToast("Google auth abhi load ho raha hai, thodi der me try karein", false); return; }
     tokenClient.requestAccessToken();
   });
 
-  document.getElementById("disconnectDriveBtn").addEventListener("click", () => {
+  disconnectDriveBtn.addEventListener("click", function () {
     driveAccessToken = null;
     driveFolderStack = [{ id: LOCKED_ROOT_FOLDER_ID, name: "My Drive" }];
-    document.getElementById("driveConnectState").classList.remove("hidden");
-    document.getElementById("driveBrowseState").classList.add("hidden");
-    document.getElementById("disconnectDriveBtn").classList.add("hidden");
+    driveConnectState.classList.remove("hidden");
+    driveBrowseState.classList.add("hidden");
+    disconnectDriveBtn.classList.add("hidden");
+    selectAllBtn.classList.add("hidden");
   });
 
   function onDriveConnected() {
-    document.getElementById("driveConnectState").classList.add("hidden");
-    document.getElementById("driveBrowseState").classList.remove("hidden");
-    document.getElementById("disconnectDriveBtn").classList.remove("hidden");
+    driveConnectState.classList.add("hidden");
+    driveBrowseState.classList.remove("hidden");
+    disconnectDriveBtn.classList.remove("hidden");
     renderBreadcrumb();
     loadDriveFolder(driveFolderStack[driveFolderStack.length - 1].id);
   }
@@ -631,41 +747,17 @@
     fetch("https://www.googleapis.com/drive/v3/files?q=" + q + "&fields=" + fields + "&pageSize=200&orderBy=folder,name", {
       headers: { Authorization: "Bearer " + driveAccessToken }
     })
-    .then(res => res.json())
-    .then(data => callback(data.files || []))
-    .catch(() => callback(null));
-  }
-
-  function loadDriveFolder(folderId) {
-    const grid = document.getElementById("driveBrowseGrid");
-    grid.innerHTML = '<div class="empty-state">Loading Drive Items...</div>';
-    driveListFiles(folderId, files => {
-      if (!files) { grid.innerHTML = '<div class="empty-state">Error loading Drive folder.</div>'; return; }
-      renderDriveGrid(files);
-    });
-  }
-
-  function renderDriveGrid(files) {
-    document.getElementById("driveCountPill").textContent = files.length + " items";
-    const grid = document.getElementById("driveBrowseGrid");
-    if(files.length === 0) { grid.innerHTML = '<div class="empty-state">Folder is empty.</div>'; return; }
-
-    grid.innerHTML = '<div class="fm-grid">' + files.map(f => {
-      var isFolder = f.mimeType === "application/vnd.google-apps.folder";
-      var key = posterKeyEncode(f.name);
-      var existing = allPosters[key];
-      return `<div class="fm-card">
-        <div class="fm-thumb" onclick="${isFolder ? `openDriveFolder('${f.id}', '${f.name.replace(/'/g, "\\'")}')` : `openPosterModal('${f.name.replace(/'/g, "\\'")}')`}">
-          ${existing && existing.url ? `<img src="${existing.url}">` : `<div class="ph">${isFolder ? '📁' : '🎬'}</div>`}
-        </div>
-        <div class="fm-info">
-          <div class="fm-name">${f.name}</div>
-          <div class="fm-actions">
-            ${isFolder ? `<button onclick="openDriveFolder('${f.id}', '${f.name.replace(/'/g, "\\'")}')">Open</button>` : `<button class="poster-btn" onclick="openPosterModal('${f.name.replace(/'/g, "\\'")}')">Set Poster</button>`}
-          </div>
-        </div>
-      </div>`;
-    }).join("") + '</div>';
+      .then(function (res) {
+        if (res.status === 401) {
+          driveAccessToken = null;
+          showToast("Drive session expire ho gayi, dobara connect karein", false);
+          callback(null);
+          return null;
+        }
+        return res.json();
+      })
+      .then(function (data) { if (data) callback(data.files || []); })
+      .catch(function () { callback(null); });
   }
 
   function openDriveFolder(id, name) {
@@ -674,347 +766,554 @@
     loadDriveFolder(id);
   }
 
-  function renderBreadcrumb() {
-    document.getElementById("breadcrumb").innerHTML = driveFolderStack.map((f, idx) => `
-      <span class="crumb" onclick="goBreadcrumb(${idx})">${f.name}</span>
-    `).join(' <span class="crumb-sep">›</span> ');
-  }
-
-  function goBreadcrumb(idx) {
-    driveFolderStack = driveFolderStack.slice(0, idx + 1);
+  function goDriveBreadcrumb(index) {
+    driveFolderStack = driveFolderStack.slice(0, index + 1);
     renderBreadcrumb();
     loadDriveFolder(driveFolderStack[driveFolderStack.length - 1].id);
   }
 
-  // ================= MODULE 1: POSTERS CODE & TMDB SEARCH =================
-  var allPosters = {};
-  var editingKey = null;
-
-  document.querySelectorAll("#posterTabsRow .inner-tab-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      document.querySelectorAll("#posterTabsRow .inner-tab-btn").forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-      const tab = btn.getAttribute("data-tab");
-      document.getElementById("tabBrowse").classList.toggle("hidden", tab !== "browse");
-      document.getElementById("tabManage").classList.toggle("hidden", tab !== "manage");
+  function renderBreadcrumb() {
+    var html = "";
+    driveFolderStack.forEach(function (f, idx) {
+      if (idx > 0) html += '<span class="crumb-sep">›</span>';
+      html += '<span class="crumb" data-idx="' + idx + '">' + escapeHtml(f.name) + '</span>';
     });
-  });
-
-  function posterKeyEncode(name) {
-    var normalized = (name || "").trim().toLowerCase().replace(/\s+/g, " ");
-    return normalized.replace(/[.#$\[\]\/]/g, ch => "_" + ch.charCodeAt(0) + "_");
+    breadcrumbEl.innerHTML = html;
+    breadcrumbEl.querySelectorAll(".crumb").forEach(function (el) {
+      el.addEventListener("click", function () { goDriveBreadcrumb(parseInt(el.getAttribute("data-idx"), 10)); });
+    });
   }
 
+  function loadDriveFolder(folderId) {
+    driveBrowseGrid.innerHTML = '<div class="empty-state"><div class="e">\u23F3</div><div class="t">Loading...</div></div>';
+    driveListFiles(folderId, function (files) {
+      if (!files) {
+        driveBrowseGrid.innerHTML = '<div class="empty-state"><div class="e">\u26A0\uFE0F</div>'
+          + '<div class="t">Load nahi ho paya</div><div class="m">"Disconnect Drive" karke dubara connect karein.</div></div>';
+        driveCountPill.textContent = "0 items";
+        currentFolderFiles = [];
+        return;
+      }
+      currentFolderFiles = files;
+      renderDriveBrowse(files);
+      updateSelectAllButtonState();
+    });
+  }
+
+  function isVideoFile(name) {
+    var lower = (name || "").toLowerCase();
+    return lower.endsWith(".mkv") || lower.endsWith(".mp4") || lower.endsWith(".avi") || lower.endsWith(".mov");
+  }
+
+  function renderDriveBrowse(files) {
+    driveCountPill.textContent = files.length + " item" + (files.length === 1 ? "" : "s");
+
+    if (files.length === 0) {
+      driveBrowseGrid.innerHTML = '<div class="empty-state"><div class="e">\uD83D\uDCED</div><div class="t">Ye folder khali hai</div></div>';
+      return;
+    }
+
+    var html = '<div class="fm-grid">';
+    files.forEach(function (f) {
+      var isFolder = f.mimeType === "application/vnd.google-apps.folder";
+      var key = posterKeyEncode(f.name);
+      var existing = allPosters[key];
+      var placeholderIcon = isFolder ? "\uD83D\uDCC1" : (isVideoFile(f.name) ? "\uD83C\uDFAC" : "\uD83D\uDCE6");
+      var isSelected = !!selectedItems[f.id];
+
+      html += '<div class="fm-card' + (selectMode ? " select-mode" : "") + (isSelected ? " selected" : "")
+        + '" data-id="' + f.id + '" data-name="' + escapeHtml(f.name) + '" data-folder="' + isFolder + '">'
+        + '<div class="fm-thumb" data-act="' + (isFolder ? "open" : "poster") + '">'
+        + (existing && existing.url ? '<img src="' + escapeHtml(existing.url) + '" loading="lazy">' : '<div class="ph">' + placeholderIcon + '</div>')
+        + (existing ? '<span class="poster-badge">\u2713</span>' : '')
+        + '<span class="select-check">\u2713</span>'
+        + '</div>'
+        + '<div class="fm-info">'
+        + '<div class="fm-name">' + escapeHtml(f.name) + '</div>'
+        + '<div class="fm-actions">'
+        + (isFolder ? '<button data-act="open">Open</button>' : '<button data-act="poster" class="poster-btn">' + (existing ? "Edit poster" : "Set poster") + '</button>')
+        + (isFolder ? '<button data-act="poster" class="poster-btn">' + (existing ? "Poster" : "+Poster") + '</button>' : '')
+        + '</div></div></div>';
+    });
+    html += '</div>';
+    driveBrowseGrid.innerHTML = html;
+
+    driveBrowseGrid.querySelectorAll(".fm-card").forEach(function (card) {
+      var id = card.getAttribute("data-id");
+      var name = card.getAttribute("data-name");
+
+      if (selectMode) {
+        card.addEventListener("click", function () {
+          if (selectedItems[id]) {
+            delete selectedItems[id];
+            card.classList.remove("selected");
+          } else {
+            selectedItems[id] = name;
+            card.classList.add("selected");
+          }
+          updateBulkBar();
+          updateSelectAllButtonState();
+        });
+        return; 
+      }
+
+      card.querySelectorAll('[data-act="open"]').forEach(function (el) {
+        el.addEventListener("click", function () { openDriveFolder(id, name); });
+      });
+      card.querySelectorAll('[data-act="poster"]').forEach(function (el) {
+        el.addEventListener("click", function (e) {
+          e.stopPropagation();
+          openPosterModal(name);
+        });
+      });
+    });
+
+    var needsResolve = files.filter(function (f) { return !allPosters[posterKeyEncode(f.name)]; });
+    resolvePostersForCards(needsResolve);
+  }
+
+  // ============================================================
+  // Bulk selection with Select All / Deselect All
+  // ============================================================
+  selectModeBtn.addEventListener("click", function () {
+    selectMode = !selectMode;
+    selectModeBtn.textContent = selectMode ? "\u2715 Selection band karein" : "\u2611\uFE0F Select multiple";
+    selectAllBtn.classList.toggle("hidden", !selectMode);
+    if (!selectMode) {
+      selectedItems = {};
+    }
+    updateBulkBar();
+    renderDriveBrowse(currentFolderFiles);
+    updateSelectAllButtonState();
+  });
+
+  selectAllBtn.addEventListener("click", function () {
+    if (currentFolderFiles.length === 0) return;
+    
+    // Check if all items in current folder are already selected
+    var allSelected = currentFolderFiles.every(function(f) { return !!selectedItems[f.id]; });
+    
+    if (allSelected) {
+      // Deselect all items of this folder
+      currentFolderFiles.forEach(function(f) {
+        delete selectedItems[f.id];
+      });
+    } else {
+      // Select all items of this folder
+      currentFolderFiles.forEach(function(f) {
+        selectedItems[f.id] = f.name;
+      });
+    }
+    
+    updateBulkBar();
+    renderDriveBrowse(currentFolderFiles);
+    updateSelectAllButtonState();
+  });
+
+  function updateSelectAllButtonState() {
+    if (!selectMode || currentFolderFiles.length === 0) return;
+    var allSelected = currentFolderFiles.every(function(f) { return !!selectedItems[f.id]; });
+    selectAllBtn.textContent = allSelected ? "🟩 Deselect All" : "☑️ Select All";
+  }
+
+  bulkCancelBtn.addEventListener("click", function () {
+    selectedItems = {};
+    updateBulkBar();
+    updateSelectAllButtonState();
+    driveBrowseGrid.querySelectorAll(".fm-card.selected").forEach(function (c) { c.classList.remove("selected"); });
+  });
+
+  function updateBulkBar() {
+    var count = Object.keys(selectedItems).length;
+    bulkCountLabel.textContent = count + " selected";
+    bulkBar.classList.toggle("hidden", !selectMode || count === 0);
+  }
+
+  bulkApplyBtn.addEventListener("click", function () {
+    var items = Object.keys(selectedItems).map(function (id) { return { id: id, name: selectedItems[id] }; });
+    if (items.length === 0) return;
+    openBulkPosterModal(items);
+  });
+
+  // ============================================================
+  // Firebase posters — live list 
+  // ============================================================
   function attachPosterListener() {
-    db.ref("posters").on("value", snapshot => {
+    db.ref("posters").on("value", function (snapshot) {
       allPosters = snapshot.val() || {};
       renderPosterList();
+      if (!driveBrowseState.classList.contains("hidden") && driveAccessToken) {
+        loadDriveFolder(driveFolderStack[driveFolderStack.length - 1].id);
+      }
     });
   }
 
   function renderPosterList() {
-    var query = document.getElementById("searchInput").value.trim().toLowerCase();
-    var keys = Object.keys(allPosters).filter(k => {
+    var query = searchInput.value.trim().toLowerCase();
+    var keys = Object.keys(allPosters).filter(function (k) {
       var entry = allPosters[k];
-      return entry && (!query || (entry.name || "").toLowerCase().includes(query));
+      if (!entry) return false;
+      if (!query) return true;
+      return (entry.name || "").toLowerCase().indexOf(query) !== -1;
     });
 
-    document.getElementById("countPill").textContent = keys.length + " posters";
+    countPill.textContent = keys.length + " poster" + (keys.length === 1 ? "" : "s");
 
     if (keys.length === 0) {
-      document.getElementById("posterListWrap").innerHTML = '<div class="empty-state">No posters found.</div>';
+      posterListWrap.innerHTML = '<div class="empty-state"><div class="e">\uD83C\uDFA8</div>'
+        + '<div class="t">' + (Object.keys(allPosters).length === 0 ? "Abhi koi poster nahi" : "Kuch nahi mila") + '</div>'
+        + '<div class="m">' + (Object.keys(allPosters).length === 0 ? '"Browse Drive" tab se poster lagayein.' : "Alag naam se search karein.") + '</div></div>';
       return;
     }
+
+    keys.sort(function (a, b) { return (allPosters[b].updatedAt || 0) - (allPosters[a].updatedAt || 0); });
 
     var html = '<div class="poster-grid">';
-    keys.forEach(key => {
+    keys.forEach(function (key) {
       var entry = allPosters[key];
-      html += `<div class="fm-card">
-        <div class="fm-thumb">${entry.url ? `<img src="${entry.url}">` : '<div class="ph">🎬</div>'}</div>
-        <div class="fm-info"><div class="fm-name">${entry.name || key}</div>
-        <div class="fm-actions">
-          <button onclick="openPosterModal('${entry.name.replace(/'/g, "\\'")}', '${key}')">Edit</button>
-          <button onclick="deletePoster('${key}')" style="color:var(--danger)">Delete</button>
-        </div></div></div>`;
+      html += '<div class="fm-card">'
+        + '<div class="fm-thumb">' + (entry.url ? '<img src="' + escapeHtml(entry.url) + '" loading="lazy">' : '<div class="ph">\uD83C\uDFAC</div>') + '</div>'
+        + '<div class="fm-info"><div class="fm-name">' + escapeHtml(entry.name || key) + '</div>'
+        + '<div class="fm-actions">'
+        + '<button data-act="edit" data-key="' + key + '">Edit</button>'
+        + '<button data-act="del" data-key="' + key + '" style="background:rgba(255,77,77,0.12);color:var(--danger);">Delete</button>'
+        + '</div></div></div>';
     });
     html += '</div>';
-    document.getElementById("posterListWrap").innerHTML = html;
+    posterListWrap.innerHTML = html;
+
+    posterListWrap.querySelectorAll('[data-act="edit"]').forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var entry = allPosters[btn.getAttribute("data-key")];
+        if (entry) openPosterModal(entry.name, btn.getAttribute("data-key"));
+      });
+    });
+    posterListWrap.querySelectorAll('[data-act="del"]').forEach(function (btn) {
+      btn.addEventListener("click", function () { deleteEntry(btn.getAttribute("data-key")); });
+    });
+  }
+  searchInput.addEventListener("input", renderPosterList);
+
+  // ============================================================
+  // Poster edit modal 
+  // ============================================================
+  function openPosterModal(name, explicitKey) {
+    bulkModeItems = null;
+    editingKey = explicitKey || posterKeyEncode(name);
+    var existing = allPosters[editingKey];
+    var tmdbFallbackUrl = tmdbPosterCache.hasOwnProperty(name) ? tmdbPosterCache[name] : null;
+
+    modalTitle.textContent = "Edit poster";
+    posterNameField.classList.remove("hidden");
+    bulkSummaryField.classList.add("hidden");
+    posterName.removeAttribute("readonly");
+    posterName.value = name;
+    posterUrl.value = existing ? (existing.url || "") : (tmdbFallbackUrl || "");
+    posterFile.value = "";
+    uploadProgress.style.display = "none";
+    updatePreview(posterUrl.value);
+    modalDeleteBtn.classList.toggle("hidden", !existing);
+    showModalForm();
+    modalOverlay.classList.add("active");
   }
 
-  function openPosterModal(name, key) {
-    editingKey = key || posterKeyEncode(name);
-    var existing = allPosters[editingKey];
-    document.getElementById("posterName").value = name;
-    document.getElementById("posterUrl").value = existing ? existing.url : "";
-    document.getElementById("tmdbResultsPanel").classList.add("hidden");
-    document.getElementById("modalFormFields").classList.remove("hidden");
-    updatePreview(document.getElementById("posterUrl").value);
-    document.getElementById("modalOverlay").classList.add("active");
+  function openBulkPosterModal(items) {
+    bulkModeItems = items;
+    editingKey = null;
+
+    modalTitle.textContent = "Poster set karein (" + items.length + " items)";
+    posterNameField.classList.add("hidden");
+    bulkSummaryField.classList.remove("hidden");
+    var namesPreview = items.slice(0, 6).map(function (i) { return "\u2022 " + i.name; }).join("<br>");
+    if (items.length > 6) namesPreview += "<br>...aur " + (items.length - 6) + " aur";
+    bulkSummaryText.innerHTML = namesPreview;
+
+    posterUrl.value = "";
+    posterFile.value = "";
+    uploadProgress.style.display = "none";
+    updatePreview("");
+    modalDeleteBtn.classList.add("hidden");
+    showModalForm();
+    modalOverlay.classList.add("active");
   }
+
+  function closePosterModal() {
+    modalOverlay.classList.remove("active");
+    editingKey = null;
+    bulkModeItems = null;
+  }
+  modalCancelBtn.addEventListener("click", closePosterModal);
+  modalOverlay.addEventListener("click", function (e) { if (e.target === modalOverlay) closePosterModal(); });
+
+  function onUrlInputChange() { updatePreview(posterUrl.value.trim()); }
 
   function updatePreview(url) {
-    document.getElementById("previewBox").innerHTML = url ? `<img src="${url}">` : "No image";
+    previewBox.innerHTML = url ? '<img src="' + escapeHtml(url) + '">' : "No image";
   }
 
-  // TMDB AUTO-FETCH IN MODAL
-  document.getElementById("autoFetchBtn").addEventListener("click", () => {
-    var query = document.getElementById("posterName").value.trim();
-    if(!query) { showToast("Pehle naam daalein", false); return; }
+  posterFile.addEventListener("change", function () {
+    var file = posterFile.files[0];
+    if (!file) return;
+    var safeName = Date.now() + "_" + file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    var ref = storage.ref("posters/" + safeName);
+    var task = ref.put(file);
 
-    document.getElementById("modalFormFields").classList.add("hidden");
-    document.getElementById("tmdbResultsPanel").classList.remove("hidden");
-    document.getElementById("tmdbResultsGrid").innerHTML = '<div class="empty-state">Searching TMDB...</div>';
+    uploadProgress.style.display = "block";
+    uploadProgress.textContent = "Uploading... 0%";
 
-    fetchTMDBMulti(query, results => {
-      if(!results || results.length === 0) {
-        document.getElementById("tmdbResultsGrid").innerHTML = '<div class="empty-state">Kuch nahi mila.</div>';
-        return;
-      }
-      document.getElementById("tmdbResultsGrid").innerHTML = results.map(r => `
-        <div class="tmdb-result-card" onclick="selectModalTmdb('${r.posterUrl}')">
-          <div class="tmdb-result-thumb"><img src="${r.posterUrl}"></div>
-          <div class="tmdb-result-label">${r.title} (${r.type})</div>
-        </div>
-      `).join("");
+    task.on("state_changed", function (snap) {
+      var pct = Math.round((snap.bytesTransferred / snap.totalBytes) * 100);
+      uploadProgress.textContent = "Uploading... " + pct + "%";
+    }, function (err) {
+      uploadProgress.textContent = "Upload fail ho gaya";
+      showToast("Upload fail: " + err.message, false);
+    }, function () {
+      task.snapshot.ref.getDownloadURL().then(function (url) {
+        posterUrl.value = url;
+        updatePreview(url);
+        uploadProgress.textContent = "Upload complete \u2713";
+        setTimeout(function () { uploadProgress.style.display = "none"; }, 1200);
+      });
     });
   });
 
-  document.getElementById("tmdbResultsBackBtn").addEventListener("click", () => {
-    document.getElementById("tmdbResultsPanel").classList.add("hidden");
-    document.getElementById("modalFormFields").classList.remove("hidden");
-  });
-
-  function selectModalTmdb(url) {
-    document.getElementById("posterUrl").value = url;
-    updatePreview(url);
-    document.getElementById("tmdbResultsPanel").classList.add("hidden");
-    document.getElementById("modalFormFields").classList.remove("hidden");
-    showToast("Poster Select ho gaya! Ab Save dabayein", true);
+  function showModalForm() {
+    tmdbResultsPanel.classList.add("hidden");
+    modalFormFields.classList.remove("hidden");
+  }
+  function showTmdbResults() {
+    modalFormFields.classList.add("hidden");
+    tmdbResultsPanel.classList.remove("hidden");
   }
 
-  document.getElementById("modalCancelBtn").addEventListener("click", () => {
-    document.getElementById("modalOverlay").classList.remove("active");
-  });
+  autoFetchBtn.addEventListener("click", function () {
+    var nameForSearch = bulkModeItems ? bulkModeItems[0].name : posterName.value.trim();
+    if (!nameForSearch) { showToast("Pehle naam daalein", false); return; }
 
-  document.getElementById("modalSaveBtn").addEventListener("click", () => {
-    var url = document.getElementById("posterUrl").value.trim();
-    var name = document.getElementById("posterName").value.trim();
-    if (!url || !name) { showToast("Name and URL required", false); return; }
+    tmdbResultsGrid.innerHTML = '<div class="empty-state"><div class="e">\u23F3</div><div class="t">Dhoond rahe hain...</div></div>';
+    showTmdbResults();
 
-    var key = editingKey || posterKeyEncode(name);
-    db.ref("posters/" + key).set({ name: name, url: url, updatedAt: Date.now() })
-      .then(() => {
-        showToast("Poster saved successfully!", true);
-        document.getElementById("modalOverlay").classList.remove("active");
-      });
-  });
-
-  function deletePoster(key) {
-    if (confirm("Delete this poster?")) {
-      db.ref("posters/" + key).remove().then(() => showToast("Deleted", true));
-    }
-  }
-
-  // ================= MODULE 2: PUSH NOTIFICATION & TMDB FIXED =================
-  var pushSelectedPoster = null;
-  var pushSearchTimer = null;
-
-  function setPosterMode(mode) {
-    document.getElementById("btnModeImdb").classList.toggle("active", mode === 'imdb');
-    document.getElementById("btnModeTmdb").classList.toggle("active", mode === 'tmdb');
-    document.getElementById("btnModeUrl").classList.toggle("active", mode === 'url');
-
-    document.getElementById("modeImdbContainer").style.display = mode === 'imdb' ? 'block' : 'none';
-    document.getElementById("modeTmdbContainer").style.display = mode === 'tmdb' ? 'block' : 'none';
-    document.getElementById("modeUrlContainer").style.display = mode === 'url' ? 'flex' : 'none';
-  }
-
-  // IMDb Execution Helper
-  function runImdbSearch() {
-    var q = document.getElementById("imdbSearchInput").value.trim();
-    if (q.length < 2) return;
-    document.getElementById("imdbResults").innerHTML = '<div style="grid-column:1/-1; font-size:12px; color:var(--muted);">Searching IMDb...</div>';
-    var firstChar = q.charAt(0).toLowerCase();
-    fetch(`https://v3.sg.media-imdb.com/suggestion/x/${firstChar}/${encodeURIComponent(q)}.json`)
-      .then(r => r.json())
-      .then(data => {
-        var posters = (data.d || []).filter(i => i.i && i.i.imageUrl).map(i => ({
-          title: i.l, poster: i.i.imageUrl
-        }));
-        renderPushGrid(document.getElementById("imdbResults"), posters);
-      }).catch(() => {
-        document.getElementById("imdbResults").innerHTML = '<div style="grid-column:1/-1; font-size:12px; color:var(--muted);">IMDb Search failed.</div>';
-      });
-  }
-
-  document.getElementById("imdbSearchInput").addEventListener("input", function() {
-    clearTimeout(pushSearchTimer);
-    pushSearchTimer = setTimeout(runImdbSearch, 400);
-  });
-  document.getElementById("imdbSearchInput").addEventListener("keypress", function(e) {
-    if (e.key === 'Enter') runImdbSearch();
-  });
-  document.getElementById("btnSearchImdb").addEventListener("click", runImdbSearch);
-
-  // TMDB Execution Helper
-  function runTmdbSearch() {
-    var q = document.getElementById("tmdbSearchInput").value.trim();
-    if (q.length < 2) { document.getElementById("tmdbResults").innerHTML = ""; return; }
-    document.getElementById("tmdbResults").innerHTML = '<div style="grid-column:1/-1; font-size:12px; color:var(--muted);">Searching TMDB...</div>';
-    
-    fetchTMDBMulti(q, results => {
-      var items = results.map(r => ({ title: r.title, poster: r.posterUrl }));
-      renderPushGrid(document.getElementById("tmdbResults"), items);
+    var parsed = tmdbParseFilename(nameForSearch);
+    tmdbSearchAll(parsed.title, parsed.year, function (results) {
+      renderTmdbResults(results);
     });
-  }
-
-  document.getElementById("tmdbSearchInput").addEventListener("input", function() {
-    clearTimeout(pushSearchTimer);
-    pushSearchTimer = setTimeout(runTmdbSearch, 400);
   });
-  document.getElementById("tmdbSearchInput").addEventListener("keypress", function(e) {
-    if (e.key === 'Enter') runTmdbSearch();
-  });
-  document.getElementById("btnSearchTmdb").addEventListener("click", runTmdbSearch);
 
-  // Shared Multi Search function for TMDB
-  function fetchTMDBMulti(query, callback) {
-    var movieUrl = `https://api.themoviedb.org/3/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}`;
-    var tvUrl = `https://api.themoviedb.org/3/search/tv?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}`;
+  tmdbResultsBackBtn.addEventListener("click", showModalForm);
+
+  function tmdbSearchAll(title, year, callback) {
+    var movieUrl = "https://api.themoviedb.org/3/search/movie?api_key=" + TMDB_API_KEY
+      + "&query=" + encodeURIComponent(title) + (year ? "&year=" + year : "");
+    var tvUrl = "https://api.themoviedb.org/3/search/tv?api_key=" + TMDB_API_KEY + "&query=" + encodeURIComponent(title);
 
     Promise.all([
-      fetch(movieUrl).then(r => r.json()).catch(() => ({ results: [] })),
-      fetch(tvUrl).then(r => r.json()).catch(() => ({ results: [] }))
-    ]).then(res => {
-      var movies = (res[0].results || []).slice(0, 8).map(m => ({
-        type: "Movie", title: m.title, posterUrl: m.poster_path ? TMDB_IMAGE_BASE + m.poster_path : null
-      }));
-      var tvs = (res[1].results || []).slice(0, 8).map(t => ({
-        type: "TV", title: t.name, posterUrl: t.poster_path ? TMDB_IMAGE_BASE + t.poster_path : null
-      }));
-      var combined = movies.concat(tvs).filter(i => i.posterUrl);
+      fetch(movieUrl).then(function (r) { return r.json(); }).catch(function () { return { results: [] }; }),
+      fetch(tvUrl).then(function (r) { return r.json(); }).catch(function () { return { results: [] }; })
+    ]).then(function (resArr) {
+      var movieResults = (resArr[0].results || []).slice(0, 10).map(function (m) {
+        return {
+          type: "movie",
+          title: m.title,
+          year: m.release_date ? m.release_date.substring(0, 4) : null,
+          posterUrl: m.poster_path ? TMDB_IMAGE_BASE + m.poster_path : null
+        };
+      });
+      var tvResults = (resArr[1].results || []).slice(0, 10).map(function (t) {
+        return {
+          type: "tv",
+          title: t.name,
+          year: t.first_air_date ? t.first_air_date.substring(0, 4) : null,
+          posterUrl: t.poster_path ? TMDB_IMAGE_BASE + t.poster_path : null
+        };
+      });
+      var combined = movieResults.concat(tvResults).filter(function (r) { return r.posterUrl; });
       callback(combined);
-    }).catch(() => callback([]));
+    }).catch(function () { callback([]); });
   }
 
-  document.getElementById("btnAttachUrl").addEventListener("click", () => {
-    var url = document.getElementById("directUrlInput").value.trim();
-    if(url) selectPushPoster(url, "Custom Image");
-  });
-
-  function renderPushGrid(container, items) {
-    if(items.length === 0) {
-      container.innerHTML = '<div style="grid-column:1/-1; font-size:12px; color:var(--muted);">Koi poster nahi mila.</div>';
+  function renderTmdbResults(results) {
+    if (!results || results.length === 0) {
+      tmdbResultsGrid.innerHTML = '<div class="empty-state"><div class="e">\uD83D\uDD0D</div>'
+        + '<div class="t">Kuch nahi mila</div><div class="m">Naam thoda alag likh ke (Name field me) dubara try karein.</div></div>';
       return;
     }
-    container.innerHTML = items.map(item => `
-      <div class="poster-card" onclick="selectPushPoster('${item.poster}', '${item.title.replace(/'/g, "")}')">
-        <img src="${item.poster}" onerror="this.src='https://via.placeholder.com/300x450?text=No+Poster'">
-        <div class="title">${item.title}</div>
-      </div>
-    `).join("");
-  }
-
-  function selectPushPoster(url, title) {
-    pushSelectedPoster = url;
-    document.getElementById("selectedPosterImg").src = url;
-    document.getElementById("selectedPosterTitle").textContent = title;
-    document.getElementById("selectedPosterBox").style.display = "flex";
-    if(!document.getElementById("pushTitleInput").value) {
-      document.getElementById("pushTitleInput").value = title;
-    }
-  }
-
-  document.getElementById("btnRemovePoster").addEventListener("click", () => {
-    pushSelectedPoster = null;
-    document.getElementById("selectedPosterBox").style.display = "none";
-  });
-
-  document.getElementById("btnSendPush").addEventListener("click", function() {
-    var title = document.getElementById("pushTitleInput").value.trim();
-    var body = document.getElementById("pushBodyInput").value.trim();
-
-    if(!title && !body) { showToast("Title or Body required", false); return; }
-
-    var payload = { title: title, body: body, ts: Date.now() };
-    if(pushSelectedPoster) payload.poster = pushSelectedPoster;
-
-    db.ref("notifications").push(payload).then(() => {
-      showToast("Notification dispatched!", true);
-      document.getElementById("pushTitleInput").value = "";
-      document.getElementById("pushBodyInput").value = "";
-      document.getElementById("selectedPosterBox").style.display = "none";
-      loadPushHistory();
+    var html = "";
+    results.forEach(function (r, idx) {
+      html += '<div class="tmdb-result-card" data-idx="' + idx + '">'
+        + '<div class="tmdb-result-thumb"><img src="' + escapeHtml(r.posterUrl) + '" loading="lazy"></div>'
+        + '<div class="tmdb-result-label">' + escapeHtml(r.title) + (r.year ? " (" + r.year + ")" : "")
+        + '<br><span class="tmdb-type-tag">' + (r.type === "tv" ? "TV" : "Movie") + '</span></div>'
+        + '</div>';
     });
-  });
+    tmdbResultsGrid.innerHTML = html;
 
-  function loadPushHistory() {
-    db.ref("notifications").limitToLast(10).once("value", snapshot => {
-      var data = snapshot.val();
-      if(!data) return;
-      var list = Object.keys(data).map(k => ({ id: k, ...data[k] })).reverse();
-      document.getElementById("pushHistoryList").innerHTML = list.map(item => `
-        <div class="history-card">
-          ${item.poster ? `<img src="${item.poster}">` : '<div style="width:42px;height:60px;background:#000;"></div>'}
-          <div class="history-details">
-            <h4>${item.title || "No Title"}</h4>
-            <p>${item.body || ""}</p>
-          </div>
-          <button class="btn btn-danger" style="padding:4px 8px; font-size:11px;" onclick="deletePushHistory('${item.id}')">Delete</button>
-        </div>
-      `).join("");
+    tmdbResultsGrid.querySelectorAll(".tmdb-result-card").forEach(function (card) {
+      card.addEventListener("click", function () {
+        var idx = parseInt(card.getAttribute("data-idx"), 10);
+        var r = results[idx];
+        posterUrl.value = r.posterUrl;
+        updatePreview(r.posterUrl);
+        showModalForm();
+        showToast("Poster select ho gaya - ab \"Save\" dabayein", true);
+      });
     });
   }
 
-  function deletePushHistory(id) {
-    db.ref("notifications/" + id).remove().then(() => loadPushHistory());
-  }
+  modalSaveBtn.addEventListener("click", function () {
+    var url = posterUrl.value.trim();
+    if (!url) { showToast("Poster URL daalein ya image upload karein", false); return; }
 
-  // ================= MODULE 3: REQUESTS CODE =================
-  var allRequests = [];
-
-  function loadRequests() {
-    db.ref("requests").once("value", snapshot => {
-      var data = snapshot.val();
-      allRequests = [];
-      if(data) {
-        Object.keys(data).forEach(k => {
-          allRequests.push({ id: k, ...data[k] });
-        });
-      }
-      allRequests.sort((a,b) => (b.ts || 0) - (a.ts || 0));
-      renderRequestsList();
-    });
-  }
-
-  function renderRequestsList() {
-    var query = (document.getElementById("reqSearchInput").value || "").toLowerCase();
-    var filtered = allRequests.filter(r => (r.name || "").toLowerCase().includes(query));
-
-    document.getElementById("reqCountPill").textContent = allRequests.length;
-
-    if(filtered.length === 0) {
-      document.getElementById("reqListContainer").innerHTML = '<div class="empty-state">No requests active.</div>';
+    if (bulkModeItems) {
+      saveBulkPosters(bulkModeItems, url);
       return;
     }
 
-    document.getElementById("reqListContainer").innerHTML = filtered.map(r => `
-      <div class="req-card">
-        <div class="req-main">
-          <div class="req-name">${r.name || "Untitled"}</div>
-          <div class="req-note">${r.note || "No notes"}</div>
-          <div class="req-time">${new Date(r.ts).toLocaleString()}</div>
-        </div>
-        <button class="btn-icon danger" onclick="deleteRequest('${r.id}')">✕</button>
-      </div>
-    `).join("");
+    var name = posterName.value.trim();
+    if (!name) { showToast("Naam daalein", false); return; }
+
+    var key = editingKey || posterKeyEncode(name);
+    modalSaveBtn.disabled = true;
+    modalSaveBtn.textContent = "Saving...";
+
+    var settled = false;
+
+    var timeoutId = setTimeout(function () {
+      if (settled) return;
+      settled = true;
+      modalSaveBtn.disabled = false;
+      modalSaveBtn.textContent = "Save";
+      showToast("Save me time lag raha hai - Firebase Database Rules check karein", false);
+    }, 10000);
+
+    db.ref("posters/" + key).set({ name: name, url: url, updatedAt: Date.now() })
+      .then(function () {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        modalSaveBtn.disabled = false;
+        modalSaveBtn.textContent = "Save";
+        showToast("Poster save ho gaya \u2713 App me bhi update ho jaayega", true);
+        closePosterModal();
+      })
+      .catch(function (err) {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        modalSaveBtn.disabled = false;
+        modalSaveBtn.textContent = "Save";
+        console.error("Poster save failed:", err);
+        var isPermissionIssue = (err && err.code === "PERMISSION_DENIED");
+        showToast(
+          isPermissionIssue
+            ? "Save fail: Firebase Database Rules abhi tak set nahi hui hai"
+            : "Save fail: " + (err && err.message ? err.message : "Kuch galat hua"),
+          false
+        );
+      });
+  });
+
+  function saveBulkPosters(items, url) {
+    var updates = {};
+    var now = Date.now();
+    items.forEach(function (item) {
+      var key = posterKeyEncode(item.name);
+      updates["posters/" + key] = { name: item.name, url: url, updatedAt: now };
+    });
+
+    modalSaveBtn.disabled = true;
+    modalSaveBtn.textContent = "Saving...";
+    var settled = false;
+
+    var timeoutId = setTimeout(function () {
+      if (settled) return;
+      settled = true;
+      modalSaveBtn.disabled = false;
+      modalSaveBtn.textContent = "Save";
+      showToast("Save me time lag raha hai - Firebase Database Rules check karein", false);
+    }, 15000);
+
+    db.ref().update(updates)
+      .then(function () {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        modalSaveBtn.disabled = false;
+        modalSaveBtn.textContent = "Save";
+        showToast(items.length + " items ka poster set ho gaya \u2713", true);
+
+        selectedItems = {};
+        selectMode = false;
+        selectModeBtn.textContent = "\u2611\uFE0F Select multiple";
+        selectAllBtn.classList.add("hidden");
+        updateBulkBar();
+        closePosterModal();
+      })
+      .catch(function (err) {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeoutId);
+        modalSaveBtn.disabled = false;
+        modalSaveBtn.textContent = "Save";
+        console.error("Bulk poster save failed:", err);
+        var isPermissionIssue = (err && err.code === "PERMISSION_DENIED");
+        showToast(
+          isPermissionIssue
+            ? "Save fail: Firebase Database Rules abhi tak set nahi hui hai"
+            : "Save fail: " + (err && err.message ? err.message : "Kuch galat hua"),
+          false
+        );
+      });
   }
 
-  function deleteRequest(id) {
-    if(confirm("Delete request?")) {
-      db.ref("requests/" + id).remove().then(() => loadRequests());
-    }
+  modalDeleteBtn.addEventListener("click", function () {
+    if (!editingKey) return;
+    if (!confirm("Ye custom poster hata dein?")) return;
+    db.ref("posters/" + editingKey).remove().then(function () {
+      showToast("Poster hata diya gaya", true);
+      closePosterModal();
+    }).catch(function (err) {
+      console.error("Delete failed:", err);
+      var isPermissionIssue = (err && err.code === "PERMISSION_DENIED");
+      showToast(
+        isPermissionIssue
+          ? "Delete fail: Firebase Database Rules abhi tak set nahi hui hai"
+          : "Delete fail: " + (err && err.message ? err.message : "Kuch galat hua"),
+        false
+      );
+    });
+  });
+
+  function deleteEntry(key) {
+    var entry = allPosters[key];
+    if (!entry) return;
+    if (!confirm('"' + entry.name + '" ka custom poster delete karein?')) return;
+    db.ref("posters/" + key).remove().then(function () { showToast("Delete ho gaya", true); })
+      .catch(function (err) {
+        console.error("Delete failed:", err);
+        var isPermissionIssue = (err && err.code === "PERMISSION_DENIED");
+        showToast(
+          isPermissionIssue
+            ? "Delete fail: Firebase Database Rules abhi tak set nahi hui hai"
+            : "Delete fail: " + (err && err.message ? err.message : "Kuch galat hua"),
+          false
+        );
+      });
+  }
+
+  // ===== Helpers =====
+  function escapeHtml(str) {
+    var div = document.createElement("div");
+    div.innerText = str == null ? "" : str;
+    return div.innerHTML;
+  }
+
+  var toastTimer = null;
+  function showToast(msg, good) {
+    toastEl.textContent = msg;
+    toastEl.className = "toast show " + (good ? "good" : "bad");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toastEl.classList.remove("show"); }, 3000);
   }
 </script>
 </body>
-</html>
+  </html>
