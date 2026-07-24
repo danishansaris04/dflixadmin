@@ -1,7 +1,7 @@
 {
   "versionCode": 2,
   "versionName": "1",
-  "title": "New version available",
+  "title": "Update New version available",
   "description": "Bug fixes, new UI, and anti-ban improvements.",
   "apkUrl": "https://dflixapp.netlify.app/DFlix.apk",
   "forceUpdate": true
