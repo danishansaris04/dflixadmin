@@ -9,6 +9,7 @@ var MOVIE_TAB_EXTRA_PATHS = [
   ["Pirates of the Caribbean", "480p"],
   ["Transformer", "480p"],
   ["DC", "480p"],
+  ["Animation", "Animation"],
   ["Marvel", "X-Men"]
 ];
 
